@@ -5,6 +5,8 @@ let origins = [], bounds = [];
 let marginFactor = 0.05;
 let pixelsPerUnit, unitPerPixel;
 
+let resizeTimeout;
+
 let c;
 
 function setup() {
@@ -13,21 +15,37 @@ function setup() {
   noLoop();
   colorMode(HSB, 100);
 
-  resetView();
+  setOrigin();
+
+  background(0);
+  drawMandelbrotSet();
+  drawGeometry();
 }
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 
+  setOrigin();
   clear();
-  resetView();
+  background(0)
+  drawGeometry();
+
+  clearTimeout(resizeTimeout)
+  resizeTimeout = setTimeout(() => {
+    clear();
+    background(0);
+    drawMandelbrotSet();
+    drawGeometry();
+  }, 100);
 }
 
 function resetView() {
   setOrigin();
 
   clear();
-  redraw();
+  background(0);
+  drawMandelbrotSet();
+  drawGeometry();
 }
 
 function setOrigin() {
@@ -42,10 +60,10 @@ function setOrigin() {
     { x: width * 0.5, y: height * (1 - offsetFactor) }
   ];
 
-  pixelsPerUnit = 0.5 * Math.min(
+  pixelsPerUnit = Math.round(0.5 * (0.5 - marginFactor) * Math.min(
     horizontalMode ? height : width,
-    (horizontalMode ? origins[1].x - origins[0].x : origins[1].y - origins[0].y) * (0.5 - marginFactor),
-  );
+    horizontalMode ? origins[1].x - origins[0].x : origins[1].y - origins[0].y,
+  ));
 
   unitPerPixel = 1 / pixelsPerUnit;
 
@@ -85,10 +103,10 @@ function mousePressed() {
 }
 
 function drawMandelbrotSet() {
+  loadPixels();
   for (let x = bounds[0].west; x < bounds[0].east; x++) {
     for (let y = bounds[0].north; y < bounds[0].south; y++) {
       const [m, isMandelbrotSet] = mandelbrot(toCartesian({ x: x, y: y }, 0));
-
       set(x, y, color(
         0,
         0,
@@ -104,28 +122,23 @@ const mandelbrot = (c) => {
   let z = { x: 0, y: 0 }, n = 0, p, d;
   do {
     p = {
-      x: Math.pow(z.x, 2) - Math.pow(z.y, 2),
+      x: z.x * z.x - z.y * z.y,
       y: 2 * z.x * z.y
     };
     z = {
       x: p.x + c.x,
       y: p.y + c.y
     };
-    d = Math.sqrt(Math.pow(z.x, 2) + Math.pow(z.y, 2));
-    n += 1;
-  } while (d <= 2 && n < MAX_ITERATION);
-  return [n, d <= 2];
+    d = z.x * z.x + z.y * z.y;
+  } while (d <= 4 && ++n < MAX_ITERATION);
+  return [n, d <= 4];
 }
 
 function drawJuliaSet(stuff) {
 
 }
 
-function draw() {
-  background(0);
-
-  drawMandelbrotSet();
-
+function drawGeometry() {
   stroke(255);
   strokeWeight(5);
   origins.forEach(o => point(o.x, o.y));
