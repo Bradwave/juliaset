@@ -1,13 +1,12 @@
 /**
  * Geometry
+ * 
+ * (this is kinda dumb atm, but fast... i think)
  */
 let origins = [], bounds = [];
-let marginFactor = 0.05;
 let pixelsPerUnit, unitPerPixel;
 
 let resizeTimeout;
-
-let c;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -18,8 +17,10 @@ function setup() {
   setOrigin();
 
   background(0);
+  stroke("#B01A00");
+  strokeWeight(4);
   drawMandelbrotSet();
-  drawGeometry();
+  // drawGeometry();
 }
 
 function windowResized() {
@@ -27,28 +28,21 @@ function windowResized() {
 
   setOrigin();
   clear();
-  background(0)
-  drawGeometry();
+  background(0);
+  stroke("#B01A00");
+  strokeWeight(4);
+  // drawGeometry();
 
-  clearTimeout(resizeTimeout)
+  // Wait 100ms before drawing.
+  clearTimeout(resizeTimeout);
   resizeTimeout = setTimeout(() => {
-    clear();
-    background(0);
     drawMandelbrotSet();
-    drawGeometry();
+    // drawGeometry();
   }, 100);
 }
 
-function resetView() {
-  setOrigin();
-
-  clear();
-  background(0);
-  drawMandelbrotSet();
-  drawGeometry();
-}
-
 function setOrigin() {
+  const marginFactor = 0.05;
   const horizontalMode = height < width;
   const offsetFactor = 0.25 * (1 + marginFactor);
 
@@ -56,13 +50,13 @@ function setOrigin() {
     { x: width * offsetFactor, y: height * 0.5 },
     { x: width * (1 - offsetFactor), y: height * 0.5 }
   ] : [
-    { x: width * 0.5, y: height * offsetFactor },
-    { x: width * 0.5, y: height * (1 - offsetFactor) }
+    { x: width * 0.5, y: height * (1 - offsetFactor) },
+    { x: width * 0.5, y: height * offsetFactor }
   ];
 
   pixelsPerUnit = Math.round(0.5 * (0.5 - marginFactor) * Math.min(
     horizontalMode ? height : width,
-    horizontalMode ? origins[1].x - origins[0].x : origins[1].y - origins[0].y,
+    horizontalMode ? origins[1].x - origins[0].x : origins[0].y - origins[1].y,
   ));
 
   unitPerPixel = 1 / pixelsPerUnit;
@@ -77,28 +71,28 @@ function setOrigin() {
   });
 }
 
-const toCartesian = function (p, originIdex) {
+const toCartesian = function (p, screenOrigin) {
   return {
-    x: (p.x - origins[originIdex].x) * unitPerPixel,
-    y: (origins[originIdex].y - p.y) * unitPerPixel
+    x: (p.x - screenOrigin.x) * unitPerPixel,
+    y: (screenOrigin.y - p.y) * unitPerPixel
   };
 }
 
-const toScreenCoordinates = function (p, originIdex) {
+const toScreenCoordinates = function (p, screenOrigin) {
   return {
-    x: p.x * pixelsPerUnit + origins[originIdex].x,
-    y: origins[originIdex].y - p.y * pixelsPerUnit
+    x: p.x * pixelsPerUnit + screenOrigin.x,
+    y: screenOrigin.y - p.y * pixelsPerUnit
   };
 }
 
 function mousePressed() {
-  const x = mouseX;
-  const y = mouseY;
-  if ((x - bounds[0].east) * (x - bounds[0].west) < 0
-    && (y - bounds[0].north) * (y - bounds[0].south) < 0) {
-    point(x, y);
+  const c = { x: mouseX, y: mouseY };
+  if ((c.x - bounds[0].east) * (c.x - bounds[0].west) < 0
+    && (c.y - bounds[0].north) * (c.y - bounds[0].south) < 0) {
+    point(c.x, c.y);
 
-    // drawJuliaSet(mandelbrot(toCartesian));
+    drawJuliaSet(toCartesian(c, origins[0]));
+    // drawGeometry();
   }
 }
 
@@ -106,11 +100,12 @@ function drawMandelbrotSet() {
   loadPixels();
   for (let x = bounds[0].west; x < bounds[0].east; x++) {
     for (let y = bounds[0].north; y < bounds[0].south; y++) {
-      const [m, isMandelbrotSet] = mandelbrot(toCartesian({ x: x, y: y }, 0));
+      const [m, isMandelbrotSet] = fc({x: 0, y: 0}, toCartesian({ x: x, y: y }, origins[0]));
       set(x, y, color(
-        0,
-        0,
-        isMandelbrotSet ? 0 : 5 + m / MAX_ITERATION * 95));
+        0, // Hue
+        0, // Saturation
+        isMandelbrotSet ? 0 : m / MAX_ITERATION * 100) //Value
+      );
     }
   }
   updatePixels();
@@ -118,34 +113,45 @@ function drawMandelbrotSet() {
 
 const MAX_ITERATION = 80;
 
-const mandelbrot = (c) => {
-  let z = { x: 0, y: 0 }, n = 0, p, d;
+const fc = (z, c) => {
+  let n = 0, d;
   do {
-    p = {
-      x: z.x * z.x - z.y * z.y,
-      y: 2 * z.x * z.y
-    };
     z = {
-      x: p.x + c.x,
-      y: p.y + c.y
+      x: z.x * z.x - z.y * z.y + c.x,
+      y: 2 * z.x * z.y + c.y
     };
     d = z.x * z.x + z.y * z.y;
   } while (d <= 4 && ++n < MAX_ITERATION);
-  return [n, d <= 4];
+  return [n, d <= 4]; 
 }
 
-function drawJuliaSet(stuff) {
-
+function drawJuliaSet(c) {
+  loadPixels();
+  for (let x = bounds[1].west; x < bounds[1].east; x++) {
+    for (let y = bounds[1].north; y < bounds[1].south; y++) {
+      const [m, isJulia] = fc(toCartesian({ x: x, y: y }, origins[1]), c);
+      set(x, y, color(
+        0, // Hue
+        0, // Saturation
+        isJulia ? 0 : m / MAX_ITERATION * 100) //Value
+      );
+    }
+  }
+  updatePixels();
 }
 
 function drawGeometry() {
   stroke(255);
   strokeWeight(5);
   origins.forEach(o => point(o.x, o.y));
+
   noFill();
   strokeWeight(1);
+  stroke(255);
   bounds.forEach(b => {
-    rect(b.west, b.north, pixelsPerUnit * 4)
+    line(b.west, b.north, b.west + 50, b.north);
   });
-  strokeWeight(3);
+
+  stroke("#B01A00");
+  strokeWeight(4);
 }
