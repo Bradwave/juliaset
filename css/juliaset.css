@@ -1,0 +1,57 @@
+/* Styling for the Julia Set Visualizer application */
+
+/* ============================
+    Table of content
+    ----------------
+    1. Global
+        - Variables
+        - Fonts
+        - Selection
+    2. Components
+        
+=============================== */
+
+/* ============================
+    1. Global
+=============================== */
+
+/* -- Variables -- */
+
+/* -- Fonts -- */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap');
+/* Robot Mono from Google Font */
+
+/* -- Selection -- */
+
+/* Disable highlight rectangle on mobile */
+
+* {
+    -webkit-tap-highlight-color: #ffffff00;
+}
+
+/* Selection */
+
+::-moz-selection {
+    color: #aaaaaa;
+    background: #B01A00;
+}
+
+::selection {
+    color: #aaaaaa;
+    background: #B01A00;
+}
+
+/* ============================
+    2. Components
+=============================== */
+
+/* -- Plot container -- */
+
+.plot-container {
+    margin: auto;
+    border: 1px solid #ffffff;
+    cursor: crosshair;
+}
+
+/* -- Highlight point -- */

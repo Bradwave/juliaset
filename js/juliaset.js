@@ -1,11 +1,11 @@
 let mainSketch = new p5((sketch) => {
 
-  let origins = [], bounds = [];
+  let origins = [], bounds = [], containerSize;
   let pixelsPerUnit, unitPerPixel;
 
   let resizeTimeout;
 
-  sketch.setup = function() {
+  sketch.setup = function () {
     sketch.createCanvas(sketch.windowWidth, sketch.windowHeight);
 
     sketch.noLoop();
@@ -17,10 +17,10 @@ let mainSketch = new p5((sketch) => {
     sketch.stroke("#B01A00");
     sketch.strokeWeight(4);
     drawMandelbrotSet();
-    // drawGeometry();
+    updateContainers();
   }
 
-  sketch.windowResized = function() {
+  sketch.windowResized = function () {
     sketch.resizeCanvas(sketch.windowWidth, sketch.windowHeight);
 
     setOrigin();
@@ -28,13 +28,13 @@ let mainSketch = new p5((sketch) => {
     sketch.background(0);
     sketch.stroke("#B01A00");
     sketch.strokeWeight(4);
-    // drawGeometry();
+    updateContainers();
 
     // Wait 100ms before drawing.
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
       drawMandelbrotSet();
-      // drawGeometry();
+      updateContainers();
     }, 100);
   }
 
@@ -69,6 +69,8 @@ let mainSketch = new p5((sketch) => {
         west: currentOrigin.x - pixelsPerUnit * 2
       };
     });
+
+    containerSize = pixelsPerUnit * 4;
   }
 
   const toCartesian = function (p, screenOrigin) {
@@ -85,14 +87,13 @@ let mainSketch = new p5((sketch) => {
     };
   }
 
-  sketch.mousePressed = function() {
+  sketch.mousePressed = function () {
     const c = { x: sketch.mouseX, y: sketch.mouseY };
     if ((c.x - bounds[0].east) * (c.x - bounds[0].west) < 0
       && (c.y - bounds[0].north) * (c.y - bounds[0].south) < 0) {
-        sketch.point(c.x, c.y);
+      sketch.point(c.x, c.y);
 
       drawJuliaSet(toCartesian(c, origins[0]));
-      // drawGeometry();
     }
   }
 
@@ -140,20 +141,13 @@ let mainSketch = new p5((sketch) => {
     sketch.updatePixels();
   }
 
-  function drawGeometry() {
-    sketch.stroke(255);
-    sketch.strokeWeight(5);
-    origins.forEach(o => point(o.x, o.y));
+  function updateContainers() {
+    let containers = [sketch.select('#mandelbrot'), sketch.select('#juliaset')];
 
-    sketch.noFill();
-    sketch.strokeWeight(1);
-    sketch.stroke(255);
-    bounds.forEach(b => {
-      line(b.west, b.north, b.west + 50, b.north);
+    containers.forEach((c, i) => {
+      c.size(containerSize, containerSize);
+      c.position(bounds[i].west, bounds[i].north);
     });
-
-    sketch.stroke("#B01A00");
-    sketch.strokeWeight(4);
   }
 
 });
