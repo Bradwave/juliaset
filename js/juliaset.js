@@ -1,7 +1,7 @@
 /**
  * Geometry
  * 
- * (this is kinda dumb atm, but fast... i think)
+ * (this variable structure is kinda dumb atm, but fast... i think)
  */
 let origins = [], bounds = [];
 let pixelsPerUnit, unitPerPixel;
