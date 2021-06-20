@@ -1,9 +1,32 @@
+let mathUtils = new function () {
+  const MAX_ITERATION = 80;
+
+  this.getMaxIteration = () => {
+    return MAX_ITERATION;
+  }
+
+  this.fc = (z, c) => {
+    let n = 0, d;
+    do {
+      z = {
+        x: z.x * z.x - z.y * z.y + c.x,
+        y: 2 * z.x * z.y + c.y
+      };
+      d = z.x * z.x + z.y * z.y;
+    } while (d <= 4 && ++n < MAX_ITERATION);
+    return [n, d <= 4];
+  }
+}
+
 let mainSketch = new p5((sketch) => {
 
   let origins = [], bounds = [], containerSize;
   let pixelsPerUnit, unitPerPixel;
 
   let resizeTimeout;
+  const waitTime = 100;
+
+  let lastPressed;
 
   sketch.setup = function () {
     sketch.createCanvas(sketch.windowWidth, sketch.windowHeight);
@@ -11,36 +34,45 @@ let mainSketch = new p5((sketch) => {
     sketch.noLoop();
     sketch.colorMode(sketch.HSB, 100);
 
-    setOrigin();
+    updateGeometry();
 
     sketch.background(0);
-    sketch.stroke("#B01A00");
-    sketch.strokeWeight(4);
+    setPointOptions();
     drawMandelbrotSet();
+
     updateContainers();
   }
 
   sketch.windowResized = function () {
     sketch.resizeCanvas(sketch.windowWidth, sketch.windowHeight);
 
-    setOrigin();
+    updateGeometry();
+
     sketch.clear();
-    sketch.background(0);
-    sketch.stroke("#B01A00");
-    sketch.strokeWeight(4);
+    setPointOptions();
+
     updateContainers();
 
     // Wait 100ms before drawing.
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
       drawMandelbrotSet();
-      updateContainers();
-    }, 100);
+      if (typeof lastPressed !== 'undefined') {
+        drawJuliaSet(lastPressed);
+        const c = toScreenCoordinates(lastPressed, origins[0]);
+        sketch.point(c.x, c.y);
+      }
+    }, waitTime);
   }
 
-  function setOrigin() {
+  function setPointOptions() {
+    sketch.stroke("#B01A00");
+    sketch.strokeWeight(5);
+  }
+
+  function updateGeometry() {
     const width = sketch.width;
-    const height = sketch.height;
+    const height = 0.9 * sketch.height;
 
     const marginFactor = 0.05;
     const horizontalMode = height < width;
@@ -73,6 +105,19 @@ let mainSketch = new p5((sketch) => {
     containerSize = pixelsPerUnit * 4;
   }
 
+  function updateContainers() {
+    let containers = [sketch.select('#mandelbrot'), sketch.select('#julia')];
+
+    containers.forEach((c, i) => {
+      c.position(bounds[i].west, bounds[i].north);
+      c.size(containerSize, containerSize);
+    });
+
+    let optionsPanel = sketch.select('#options');
+    optionsPanel.position(1 + bounds[0].west, bounds[0].south + 0.12 * (sketch.height - bounds[0].south));
+    optionsPanel.size(bounds[1].east - bounds[0].west, 0.8 * (sketch.height - bounds[0].south));
+  }
+
   const toCartesian = function (p, screenOrigin) {
     return {
       x: (p.x - screenOrigin.x) * unitPerPixel,
@@ -87,13 +132,39 @@ let mainSketch = new p5((sketch) => {
     };
   }
 
+  function isInside(i, c) {
+    return ((c.x - bounds[i].east) * (c.x - bounds[i].west) < 0
+      && (c.y - bounds[i].north) * (c.y - bounds[i].south) < 0);
+  }
+
   sketch.mousePressed = function () {
     const c = { x: sketch.mouseX, y: sketch.mouseY };
-    if ((c.x - bounds[0].east) * (c.x - bounds[0].west) < 0
-      && (c.y - bounds[0].north) * (c.y - bounds[0].south) < 0) {
+    if (isInside(0, c)) {
       sketch.point(c.x, c.y);
+      lastPressed = toCartesian(c, origins[0]);
+      drawJuliaSet(lastPressed);
+    }
+  }
 
-      drawJuliaSet(toCartesian(c, origins[0]));
+  sketch.mouseMoved = function () {
+    try {
+      let c = { x: sketch.mouseX, y: sketch.mouseY };
+      if (isInside(0, c)) {
+        c = toCartesian(c, origins[0]);
+        document.getElementById("mandelbrot-coordinates").innerHTML = "$" + c.x.toFixed(2) + "+" + c.y.toFixed(2) + "i $";
+        document.getElementById("julia-coordinates").innerHTML = "$\\,$";
+
+      } else if (isInside(1, c)) {
+        c = toCartesian(c, origins[1]);
+        document.getElementById("mandelbrot-coordinates").innerHTML = "$\\,$";
+        document.getElementById("julia-coordinates").innerHTML = "$" + c.x.toFixed(2) + "+" + c.y.toFixed(2) + "i $";
+      } else {
+        document.getElementById("mandelbrot-coordinates").innerHTML = "$\\,$";
+        document.getElementById("julia-coordinates").innerHTML = "$\\,$";
+      }
+      MathJax.typeset();
+    } catch (error) {
+      console.log(error);
     }
   }
 
@@ -101,53 +172,30 @@ let mainSketch = new p5((sketch) => {
     sketch.loadPixels();
     for (let x = bounds[0].west; x < bounds[0].east; x++) {
       for (let y = bounds[0].north; y < bounds[0].south; y++) {
-        const [m, isMandelbrotSet] = fc({ x: 0, y: 0 }, toCartesian({ x: x, y: y }, origins[0]));
+        const [m, isMandelbrotSet] = mathUtils.fc({ x: 0, y: 0 }, toCartesian({ x: x, y: y }, origins[0]));
         sketch.set(x, y, sketch.color(
           0, // Hue
           0, // Saturation
-          isMandelbrotSet ? 0 : m / MAX_ITERATION * 100) //Value
+          isMandelbrotSet ? 0 : m / mathUtils.getMaxIteration() * 100) //Value
         );
       }
     }
     sketch.updatePixels();
-  }
-
-  const MAX_ITERATION = 80;
-
-  const fc = (z, c) => {
-    let n = 0, d;
-    do {
-      z = {
-        x: z.x * z.x - z.y * z.y + c.x,
-        y: 2 * z.x * z.y + c.y
-      };
-      d = z.x * z.x + z.y * z.y;
-    } while (d <= 4 && ++n < MAX_ITERATION);
-    return [n, d <= 4];
   }
 
   function drawJuliaSet(c) {
     sketch.loadPixels();
     for (let x = bounds[1].west; x < bounds[1].east; x++) {
       for (let y = bounds[1].north; y < bounds[1].south; y++) {
-        const [m, isJulia] = fc(toCartesian({ x: x, y: y }, origins[1]), c);
+        const [m, isJulia] = mathUtils.fc(toCartesian({ x: x, y: y }, origins[1]), c);
         sketch.set(x, y, sketch.color(
           0, // Hue
           0, // Saturation
-          isJulia ? 0 : m / MAX_ITERATION * 100) //Value
+          isJulia ? 0 : m / mathUtils.getMaxIteration() * 100) //Value
         );
       }
     }
     sketch.updatePixels();
-  }
-
-  function updateContainers() {
-    let containers = [sketch.select('#mandelbrot'), sketch.select('#juliaset')];
-
-    containers.forEach((c, i) => {
-      c.size(containerSize, containerSize);
-      c.position(bounds[i].west, bounds[i].north);
-    });
   }
 
 });

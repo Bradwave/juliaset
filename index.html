@@ -4,23 +4,87 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    
+
     <title>Julia Set</title>
-    
+
     <meta name="description" content="Julia Set Visualizer">
     <meta name="keywords" content="maths, julia set, educational">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="css/juliaset.css">
 </head>
 
-<body style="display: block; padding: 0; margin: 0; overflow: hidden;">
+<body>
 
-    <div id="mandelbrot" class="plot-container"></div>
-    <div id="juliaset" class="plot-container"></div>
+    <div id="mandelbrot" class="plot-container">
+        <div class="cartesian-plane">
+            <span class="x axis"></span>
+            <span class="y axis"></span>
+            <span class="right arrow"></span>
+            <span class="up arrow"></span>
+        </div>
+        <span id="mandelbrot-coordinates" class="coordinates">
+            $\,$
+        </span>
+    </div>
+
+    <div id="julia" class="plot-container">
+        <div class="cartesian-plane" id="julia-plane">
+            <span class="x axis"></span>
+            <span class="y axis"></span>
+            <span class="right arrow"></span>
+            <span class="up arrow"></span>
+        </div>
+        <span id="julia-coordinates" class="coordinates">
+            $\,$
+        </span>
+    </div>
+
     <div id="zoom"></div>
+
+    <div id="options" class="options-panel">
+        <span class="options-text">
+            <span id="toggle-axes" class="toggle-dot" onclick="toggleAxes()"></span>
+            show axes
+            <br>
+            <span id="toggle-coordinates" class="toggle-dot" onclick="toggleCoordinates()"></span>
+            show coordinates
+        </span>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/p5@1.3.1/lib/p5.js"></script>
     <script src="js/juliaset.js"></script>
+
+    <script>
+        let showAxes = true;
+        let showCoordinates = true;
+
+        function toggleAxes() {
+            showAxes = !showAxes;
+            document.getElementById("toggle-axes").style.backgroundColor = showAxes ? "#B01A00" : "#b4b4b4";
+            document.getElementsByClassName("cartesian-plane").forEach(e => {
+                e.style.visibility = showAxes ? "visible" : "hidden";
+            })
+        }
+
+        function toggleCoordinates() {
+            showCoordinates = !showCoordinates;
+            document.getElementById("toggle-coordinates").style.backgroundColor = showCoordinates ? "#B01A00" : "#b4b4b4";
+            document.getElementsByClassName("coordinates").forEach(e => {
+                e.style.visibility = showCoordinates ? "visible" : "hidden";
+            })
+        }
+    </script>
+
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.0.1/es5/tex-mml-chtml.js"></script>
+
 
     </div>
 </body>
