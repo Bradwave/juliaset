@@ -53,9 +53,17 @@ let mainSketch = new p5((sketch) => {
 
     updateContainers();
 
+    document.getElementsByClassName("loader").forEach(e => {
+      e.style.visibility = "visible";
+    });
+
     // Wait 100ms before drawing.
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
+      document.getElementsByClassName("loader").forEach(e => {
+        e.style.visibility = "hidden";
+      });
+
       drawMandelbrotSet();
       if (typeof lastPressed !== 'undefined') {
         drawJuliaSet(lastPressed);

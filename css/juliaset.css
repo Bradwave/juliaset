@@ -172,3 +172,53 @@ body {
     background-color: #B01A00;
     display: inline-block;
 }
+
+/* -- Loader -- */
+
+.loader, .loader:after {
+    border-radius: 50%;
+    width: 10em;
+    height: 10em;
+}
+
+.loader {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    margin: 4px;
+    font-size: 2px;
+    position: relative;
+    text-indent: -9999em;
+    border-top: 1.75em solid #ffffff2f;
+    border-right: 1.75em solid #ffffff2f;
+    border-bottom: 1.75em solid #ffffff2f;
+    border-left: 1.75em solid #ffffff;
+    -webkit-transform: translateZ(0);
+    -ms-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-animation: load 1.1s infinite linear;
+    animation: load 1.1s infinite linear;
+    visibility: hidden;
+}
+
+@-webkit-keyframes load {
+    0% {
+        -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes load {
+    0% {
+        -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
