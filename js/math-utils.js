@@ -7,7 +7,7 @@
  */
 let mathUtils = new function () {
 
-    /** Maximum numbers of iterations for *f(z) = z^2 + c*.
+    /** Maximum numbers of iterations for f(z) = z^2 + c.
      * @type {number} */
     let maxIteration = 80;
 
@@ -28,11 +28,11 @@ let mathUtils = new function () {
     }
 
     /**
-     * Implementation of *f(z) = z^2 + c*, calculates the iterations needed to escape the radius 2.
+     * Implementation of f(z) = z^2 + c, calculates the iterations needed to escape the radius 2.
      * Returns the number of iterations and if escaped or not.
-     * @param   {number} z 
-     * @param   {number} c 
-     * @returns {Array} Array with the number of iterations and if escaped.
+     * @param   {number}           z  Value of z in f(z) = z^2 + c.
+     * @param   {number}           c  Value of c in f(z) = z^2 + c.
+     * @returns {[number,boolean]}    Array with the number of iterations and if escaped.
      */
     this.fc = (z, c) => {
         let i = 0, d;

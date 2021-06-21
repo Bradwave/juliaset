@@ -1,6 +1,6 @@
 /* Styling for the Julia Set Visualizer application */
 
-/* ============================
+/* ==================================
     Table of content
     ----------------
     1. Global
@@ -8,8 +8,23 @@
         - Fonts
         - Selection
     2. Components
+        2.1 Body
+        2.2 General containers
+            - General container
+            - Loading container
+        2.3 Plot containers
+            2.3.1 Cartesian plane
+                - Axes
+                - Arrows
+            2.3.2 Point highlight
+            2.3.3 Selection
+        2.4 Loaders
+            - Plot loader
+            - General loader
+        2.4 Options
+            - Toggle button
         
-=============================== */
+===================================== */
 
 /* ============================
     1. Global
@@ -48,7 +63,7 @@
     2. Components
 =============================== */
 
-/* -- Body -- */
+/* -- 2.1 Body -- */
 
 body {
     width: 100%;
@@ -60,7 +75,7 @@ body {
     background-color: #000000;
 }
 
-/* -- General container -- */
+/* -- 2.2 General containers -- */
 
 /* General container */
 
@@ -84,7 +99,7 @@ div.loading-container {
     place-items: center;
 }
 
-/* -- Plot container -- */
+/* -- 2.3 Plot containers -- */
 
 .plot-container {
     padding: 0;
@@ -93,9 +108,7 @@ div.loading-container {
     cursor: crosshair;
 }
 
-/* -- Highlight point -- */
-
-/* -- Cartesian plane -- */
+/* -- 2.3.1 Cartesian plane -- */
 
 .cartesian-plane {
     position: absolute;
@@ -112,7 +125,7 @@ div.loading-container {
 .coordinates {
     position: absolute;
     z-index: 99999;
-    left: 4pt;
+    left: 5pt;
     bottom: 2pt;
     margin: 0;
     padding: 0;
@@ -136,8 +149,6 @@ div.loading-container {
     padding: 0;
 }
 
-/* x axis */
-
 .axis.x {
     left: 0%;
     top: 50%;
@@ -145,8 +156,6 @@ div.loading-container {
     height: 0px;
     border-top: 1px #b4b4b4 solid;
 }
-
-/* y axis */
 
 .axis.y {
     left: 50%;
@@ -178,82 +187,7 @@ div.loading-container {
     transform: rotate(-135deg);
 }
 
-/* -- Options -- */
-
-.options-panel {
-    margin: 0;
-    padding: 0;
-    color: #aaaaaa;
-    font-size: 14px;
-    overflow-x: hidden;
-    display: inline-block;
-    user-select: none;
-}
-
-.options-text {
-    vertical-align: middle;
-}
-
-/* Toggle button */
-
-.toggle-dot {
-    position: relative;
-    top: 2px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: #B01A00;
-    display: inline-block;
-    transition: all .1s ease-in-out;
-}
-
-/* -- Loader -- */
-
-.loader, .loader:after {
-    border-radius: 50%;
-    width: 10em;
-    height: 10em;
-}
-
-.loader {
-    margin: 4px;
-    text-indent: -9999em;
-    border-top: 1.75em solid #ffffff2f;
-    border-right: 1.75em solid #ffffff2f;
-    border-bottom: 1.75em solid #ffffff2f;
-    transform: translateZ(0);
-    animation: load 1.1s infinite linear;
-    animation-play-state: paused;
-    visibility: hidden;
-}
-
-.loader.plot {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    font-size: 2px;
-    border-left: 1.75em solid #ffffff;
-}
-
-.loader.general {
-    top: 6pt;
-    left: 2pt;
-    font-size: 3px;
-    border-left: 1.75em solid #B01A00;
-    visibility: visible;
-    animation-play-state: running;
-}
-
-@keyframes load {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-/* --  Point highlight -- */
+/* --  2.3.2 Point highlight -- */
 
 .point-highlight {
     position: absolute;
@@ -281,7 +215,7 @@ div.loading-container {
     }
 }
 
-/* --  Selection -- */
+/* --  2.3.3 Selection -- */
 
 .selection-rectangle {
     position: absolute;
@@ -294,4 +228,84 @@ div.loading-container {
     position: absolute;
     top: -2px;
     right: -16px;
+}
+
+/* -- 2.4 Loaders -- */
+
+.loader, .loader:after {
+    border-radius: 50%;
+    width: 10em;
+    height: 10em;
+}
+
+.loader {
+    margin: 4px;
+    text-indent: -9999em;
+    border-top: 1.75em solid #ffffff2f;
+    border-right: 1.75em solid #ffffff2f;
+    border-bottom: 1.75em solid #ffffff2f;
+    transform: translateZ(0);
+    animation: load 1.1s infinite linear;
+    animation-play-state: paused;
+    visibility: hidden;
+}
+
+@keyframes load {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Plot loader */
+
+.loader.plot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 2px;
+    border-left: 1.75em solid #ffffff;
+}
+
+/* General loader */
+
+.loader.general {
+    top: 6pt;
+    left: 2pt;
+    font-size: 3px;
+    border-left: 1.75em solid #B01A00;
+    visibility: visible;
+    animation-play-state: running;
+}
+
+/* -- 2.5 Options -- */
+
+.options-panel {
+    margin: 0;
+    padding: 0;
+    color: #aaaaaa;
+    font-size: 14px;
+    overflow-x: hidden;
+    display: inline-block;
+    user-select: none;
+}
+
+.options-text {
+    vertical-align: middle;
+}
+
+/* Toggle button */
+
+.toggle-dot {
+    position: relative;
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #B01A00;
+    display: inline-block;
+    transition: all .1s ease-in-out;
+    cursor: pointer;
 }

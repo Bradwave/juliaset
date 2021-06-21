@@ -1,12 +1,10 @@
 /**
- * 
+ * Main p5 sketch
  */
 let mainSketch = new p5((sketch) => {
 
-  /*
-  | ---------------------------------
-  | General variables
-  | --------------------------------
+  /*_______________________________________
+  |   General variables
   */
 
   /** Array of origins for the mandelbrot and julia sets plots.
@@ -17,7 +15,7 @@ let mainSketch = new p5((sketch) => {
    * @type {Array<{north: number, east: number, south: number, west: number}>} */
   let bounds = [];
 
-  /** Size of the sketches.
+  /** Size of the plots.
    * @type {number} */
   let plotSize;
 
@@ -37,10 +35,8 @@ let mainSketch = new p5((sketch) => {
   /** Julia image. */
   let juliaImgs = [];
 
-  /*
-  | ---------------------------------
-  | Resizing
-  | --------------------------------
+  /*_______________________________________
+  |   Resizing variables
   */
 
   let resizeTimeout;
@@ -49,10 +45,8 @@ let mainSketch = new p5((sketch) => {
    * @type {number} */
   const waitTime = 100;
 
-  /*
-  | ---------------------------------
-  | HTML elements
-  | --------------------------------
+  /*_______________________________________
+  |   HTML elements variables
   */
 
   /** Loaders. */
@@ -86,10 +80,8 @@ let mainSketch = new p5((sketch) => {
   /** Options panel. */
   let optionsPanel;
 
-  /*
-  | ---------------------------------
-  | Selections
-  | --------------------------------
+  /*_______________________________________
+  |   Selections variables
   */
 
   /** Last selected point in Cartesian coordinates.
@@ -113,6 +105,10 @@ let mainSketch = new p5((sketch) => {
 
   /** True if user has selected an area, false otherwise. */
   let areaSelected = false;
+
+  /*_______________________________________
+  |   On open and resize
+  */
 
   /**
    * Overwrites p5 function.
@@ -150,6 +146,10 @@ let mainSketch = new p5((sketch) => {
    */
   sketch.windowResized = function () {
 
+    /*_____________________________
+    |   On resize
+    */
+
     // Creates the canvas
     sketch.resizeCanvas(sketch.windowWidth, sketch.windowHeight);
 
@@ -177,6 +177,10 @@ let mainSketch = new p5((sketch) => {
     // Hides the selection area
     selectionRectangle.style('visibility', 'hidden');
 
+    /*_____________________________
+    |   After wait time elapsed
+    */
+
     // Waits before drawing
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
@@ -190,7 +194,8 @@ let mainSketch = new p5((sketch) => {
       // Executes if an area is selected
       if (areaSelected) {
 
-        // Draws the zoomed Julia plot
+        // Draws the Mandelbrot plot and zoomed Julia plot on top
+        drawMandelbrotSet();
         drawZoomedPlot();
 
         // Makes the selection area visible
@@ -219,15 +224,91 @@ let mainSketch = new p5((sketch) => {
   }
 
   /**
+   * Updates the position and size of plots.
+   */
+  function updateGeometry() {
+
+    // Stores canvas width and height
+    const width = sketch.width;
+    const height = 0.9 * sketch.height;
+
+    /** True if the canvas is horizontal, false otherwise. */
+    const horizontalMode = height < width;
+
+    /**
+     * If the canvas is horizontal, the plots will be displayed side by side,
+     * if not, the plots will be displayed one above the other.
+     * A margin is established and then plots are centered accordingly.
+     * A space is left below the plots for the options panel.
+     */
+
+    const marginFactor = 0.05;
+    const offsetFactor = 0.25 * (1 + marginFactor);
+
+    origins = horizontalMode ? [
+      { x: Math.round(width * offsetFactor), y: Math.round(height * 0.5) },
+      { x: Math.round(width * (1 - offsetFactor)), y: Math.round(height * 0.5) }
+    ] : [
+      { x: Math.round(width * 0.5), y: Math.round(height * (1 - offsetFactor)) },
+      { x: Math.round(width * 0.5), y: Math.round(height * offsetFactor) }
+    ];
+
+    pixelsPerUnit = Math.round(0.5 * (0.5 - marginFactor) * Math.min(
+      horizontalMode ? height : width,
+      horizontalMode ? origins[1].x - origins[0].x : origins[0].y - origins[1].y,
+    ));
+
+    unitsPerPixel = 1 / pixelsPerUnit;
+
+    origins.forEach((currentOrigin, currentIndex) => {
+      bounds[currentIndex] = {
+        north: currentOrigin.y - pixelsPerUnit * 2,
+        east: currentOrigin.x + pixelsPerUnit * 2,
+        south: currentOrigin.y + pixelsPerUnit * 2,
+        west: currentOrigin.x - pixelsPerUnit * 2
+      };
+    });
+
+    // Sets the plot size to 4 Cartesian unit.
+    plotSize = pixelsPerUnit * 4;
+
+  }
+
+  /**
+   * Updates the HTML elements with correct positions and sizes.
+   */
+  function updateHtmlElements() {
+
+    // Plot containers
+    plotContainers.forEach((c, i) => {
+      c.position(bounds[i].west - 1, bounds[i].north - 1);
+      c.size(plotSize - 1, plotSize - 1);
+    });
+
+    // Options panel
+    optionsPanel.position(
+      1 + bounds[0].west,
+      bounds[0].south + 0.12 * (sketch.height - bounds[0].south)
+    );
+    optionsPanel.size(
+      bounds[1].east - bounds[0].west,
+      0.8 * (sketch.height - bounds[0].south)
+    );
+
+  }
+
+  /*_______________________________________
+  | HTML elements interactions
+  */
+
+  /**
    * Gets the necessary HTML elements and sets listeners.
    * For internal use only.
    */
   function configHtmlElements() {
 
-    /*
-    | ---------------------------------
-    | HTML elements
-    | --------------------------------
+    /*_____________________________
+    |   HTML elements
     */
 
     // Loaders
@@ -273,10 +354,8 @@ let mainSketch = new p5((sketch) => {
     // Options panel
     optionsPanel = sketch.select('#options');
 
-    /*
-    | ---------------------------------
-    | Listeners
-    | --------------------------------
+    /*_____________________________
+    |   Listeners
     */
 
     // Plot containers shared listeners for coordinates
@@ -355,6 +434,7 @@ let mainSketch = new p5((sketch) => {
       startPoint = { x: sketch.mouseX, y: sketch.mouseY };
     });
 
+    // Executes only if a mouse button is released
     plotContainers[1].mouseReleased(() => {
 
       // Executes only if the mouse is moved by 1 pixel approximately
@@ -396,12 +476,12 @@ let mainSketch = new p5((sketch) => {
    * Gets called when a mouse button is released.
    */
   sketch.mouseDragged = function () {
+
+    // Executes only if selection process is ongoing and a point was selected
     if (selectingArea && typeof selectedPoints[0] !== 'undefined') {
 
       // Shows the selection rectangle
       if (selectionRectangle.style('visibility') === 'hidden') {
-
-        // Shows the selection rectangle
         selectionRectangle.style('visibility', 'visible');
       }
 
@@ -439,11 +519,58 @@ let mainSketch = new p5((sketch) => {
     }
   }
 
+  /*_______________________________________
+  | Geometry options
+  */
+
+  /**
+   * Checks if a point is inside a plot plot container.
+   * @param   {number}                   i Index of the plot container (0 for Mandelbrot, 1 for Julia).
+   * @param   {{ x: number, y: number }} c Point to be checked.
+   * @returns {boolean}                    True if inside the i-plot container, false otherwise.
+   */
   function isInside(i, c) {
     return ((c.x - bounds[i].east) * (c.x - bounds[i].west) < 0
       && (c.y - bounds[i].north) * (c.y - bounds[i].south) < 0);
   }
 
+  /**
+   * Converts a point to a Cartesian coordinates system, given the origin and units per Pixel.
+   * @param {{ x: number, y: number}}   p            Point in screen coordinates to be converted.
+   * @param {{ x: number, y: number}}   screenOrigin Origin in screen coordinates.
+   * @param {number}                    scaleFactor  Units per pixel (global UPP by default).
+   * @returns {{ x: number, y: number}}              Point in Cartesian coordinates.
+   */
+  const toCartesian = function (p, screenOrigin, scaleFactor = unitsPerPixel) {
+    return {
+      x: (p.x - screenOrigin.x) * scaleFactor,
+      y: (screenOrigin.y - p.y) * scaleFactor
+    };
+  }
+
+  /**
+   * Converts a point to the screen coordinates system, given the origin in screen coordinates.
+   * @param {{ x: number, y: number}}   p            Point in Cartesian coordinates to be converted.
+   * @param {{ x: number, y: number}}   screenOrigin Origin in screen coordinates.
+   * @returns {{ x: number, y: number}}              Point in screen coordinates.
+   */
+  const toScreenCoordinates = function (p, screenOrigin) {
+    return {
+      x: p.x * pixelsPerUnit + screenOrigin.x,
+      y: screenOrigin.y - p.y * pixelsPerUnit
+    };
+  }
+
+  /*_______________________________________
+  | Graphics
+  */
+
+  /**
+   * Converts a point (a,b) into a string with complex number notation a + bi. 
+   * @param   {{ x: number, y: number }} p Point to be displayed.
+   * @param   {number}                   d Number of digits after the decimal point [0 - 20].
+   * @returns {String}                     String with format a + bi.
+   */
   function coordinatesToString(p, d) {
     return (p.x >= 0 ? "+" : "") + p.x.toFixed(d) + (p.y >= 0 ? "+" : "") + p.y.toFixed(d) + "i";
   }
@@ -457,133 +584,25 @@ let mainSketch = new p5((sketch) => {
   }
 
   /**
-   * Updates the position and size of plots.
+   * Draws the last selected point and the point highlight.
    */
-  function updateGeometry() {
+  function drawLastPoint() {
 
-    const width = sketch.width; // Use windowWidth instead? Needs to be checked
-    const height = 0.9 * sketch.height; // Use windowHeight instead? Needs to be checked
+    // Draws the last selected point
+    const c = toScreenCoordinates(selectedPoints[0], origins[0]);
+    sketch.point(c.x, c.y);
 
-    /** True if the canvas is horizontal, false otherwise. */
-    const horizontalMode = height < width;
-
-    /**
-     * If the canvas is horizontal, the plots will be displayed side by side,
-     * if not, the plots will be displayed one above the other.
-     * A margin is established and then plots are centered accordingly.
-     * A space is left below the plots for the options panel.
-     */
-
-    const marginFactor = 0.05;
-    const offsetFactor = 0.25 * (1 + marginFactor);
-
-    origins = horizontalMode ? [
-      { x: Math.round(width * offsetFactor), y: Math.round(height * 0.5) },
-      { x: Math.round(width * (1 - offsetFactor)), y: Math.round(height * 0.5) }
-    ] : [
-      { x: Math.round(width * 0.5), y: Math.round(height * (1 - offsetFactor)) },
-      { x: Math.round(width * 0.5), y: Math.round(height * offsetFactor) }
-    ];
-
-    pixelsPerUnit = Math.round(0.5 * (0.5 - marginFactor) * Math.min(
-      horizontalMode ? height : width,
-      horizontalMode ? origins[1].x - origins[0].x : origins[0].y - origins[1].y,
-    ));
-
-    unitsPerPixel = 1 / pixelsPerUnit;
-
-    origins.forEach((currentOrigin, currentIndex) => {
-      bounds[currentIndex] = {
-        north: currentOrigin.y - pixelsPerUnit * 2,
-        east: currentOrigin.x + pixelsPerUnit * 2,
-        south: currentOrigin.y + pixelsPerUnit * 2,
-        west: currentOrigin.x - pixelsPerUnit * 2
-      };
-    });
-
-    /** Plot size, equals to 4 Cartesian unit. */
-    plotSize = pixelsPerUnit * 4;
-
-  }
-
-  function updateHtmlElements() {
-
-    // Plot containers
-    plotContainers.forEach((c, i) => {
-      c.position(bounds[i].west - 1, bounds[i].north - 1);
-      c.size(plotSize - 1, plotSize - 1);
-    });
-
-    // Options panel
-    optionsPanel.position(
-      1 + bounds[0].west,
-      bounds[0].south + 0.12 * (sketch.height - bounds[0].south)
+    // Displays the point highlight
+    pointHighlight.style('visibility', 'visible');
+    pointHighlight.position(
+      c.x - bounds[0].west - pointHighlightRadius - .5,
+      c.y - bounds[0].north - pointHighlightRadius - .75
     );
-    optionsPanel.size(
-      bounds[1].east - bounds[0].west,
-      0.8 * (sketch.height - bounds[0].south)
-    );
-
   }
 
-  const toCartesian = function (p, screenOrigin, scaleFactor = unitsPerPixel) {
-    return {
-      x: (p.x - screenOrigin.x) * scaleFactor,
-      y: (screenOrigin.y - p.y) * scaleFactor
-    };
-  }
-
-  const toScreenCoordinates = function (p, screenOrigin) {
-    return {
-      x: p.x * pixelsPerUnit + screenOrigin.x,
-      y: screenOrigin.y - p.y * pixelsPerUnit
-    };
-  }
-
-  function drawMandelbrotSet() {
-    mandelbrotImg = sketch.createImage(plotSize, plotSize);
-    mandelbrotImg.loadPixels();
-
-    for (let x = 0; x < plotSize; x++) {
-      for (let y = 0; y < plotSize; y++) {
-        const [m, isMandelbrotSet] = mathUtils.fc(
-          { x: 0, y: 0 },
-          toCartesian({ x: x, y: y }, { x: plotSize / 2, y: plotSize / 2 })
-        );
-        mandelbrotImg.set(x, y, sketch.color(
-          0, // Hue
-          0, // Saturation
-          isMandelbrotSet ? 0 : m / mathUtils.getMaxIteration() * 100) //Value
-        );
-      }
-    }
-
-    mandelbrotImg.updatePixels();
-    sketch.image(mandelbrotImg, bounds[0].west, bounds[0].north);
-  }
-
-  function drawJuliaSet(c, plotIndex, imgIndex, screenOrigin, scaleFactor = unitsPerPixel) {
-    juliaImgs[imgIndex] = sketch.createImage(plotSize, plotSize);
-    juliaImgs[imgIndex].loadPixels();
-
-    for (let x = 0; x < plotSize; x++) {
-      for (let y = 0; y < plotSize; y++) {
-        const [m, isJulia] = mathUtils.fc(
-          toCartesian({ x: x, y: y }, screenOrigin, scaleFactor),
-          c
-        );
-        juliaImgs[imgIndex].set(x, y, sketch.color(
-          0, // Hue
-          0, // Saturation
-          isJulia ? 0 : m / mathUtils.getMaxIteration() * 100) //Value
-        );
-      }
-    }
-
-    juliaImgs[imgIndex].updatePixels();
-    sketch.image(juliaImgs[imgIndex], bounds[plotIndex].west, bounds[plotIndex].north);
-  }
-
+  /**
+   * Draws the zoomed Julia plot.
+   */
   function drawZoomedPlot() {
 
     let anchorPoint = toScreenCoordinates(selectionCartesianCorner, origins[1]);
@@ -637,10 +656,13 @@ let mainSketch = new p5((sketch) => {
     );
   }
 
+  /**
+   * Resets the Mandelbrot plot and the corresponding Cartesian plane.
+   */
   function resetMandelbrotPlot() {
 
     // Moves the Mandelbrot plot on top of the zoomed plot Julia plot
-    sketch.image(mandelbrotImg, bounds[0].west, bounds[0].north);
+    sketch.image(mandelbrotImg, bounds[0].west, bounds[0].north, plotSize, plotSize);
 
     // Resets the style of the Mandelbrot container
     plotContainers[0].style('border-color', '#b4b4b4');
@@ -653,31 +675,99 @@ let mainSketch = new p5((sketch) => {
     // Makes the Mandelbrot information visible
     mandelbrotInfo.style.visibility = "visible";
 
-    if (guiHandler.getShowAxes()) {
-      // Resets the x and y axis and arrowss
-      mXAxis.style.top = "50%";
-      mXAxis.style.opacity = 1;
-      mXArrow.style.top = "48.5%";
-      mXArrow.style.opacity = 1;
-      mYAxis.style.left = "50%";
-      mYAxis.style.opacity = 1;
-      mYArrow.style.left = "48.5%";
-      mYArrow.style.opacity = 1;
-    }
+    // Resets the x and y axis and arrows
+    mXAxis.style.top = "50%";
+    mXAxis.style.opacity = 1;
+    mXArrow.style.top = "48.5%";
+    mXArrow.style.opacity = 1;
+    mYAxis.style.left = "50%";
+    mYAxis.style.opacity = 1;
+    mYArrow.style.left = "48.5%";
+    mYArrow.style.opacity = 1;
   }
 
-  function drawLastPoint() {
+  /*_______________________________________
+  | Mandelbrot and Julia set plotter
+  */
 
-    // Draws the last selected point
-    const c = toScreenCoordinates(selectedPoints[0], origins[0]);
-    sketch.point(c.x, c.y);
+  /**
+   * Draws the Mandelbrot set plot.
+   */
+  function drawMandelbrotSet() {
 
-    // Displays the point highlight
-    pointHighlight.style('visibility', 'visible');
-    pointHighlight.position(
-      c.x - bounds[0].west - pointHighlightRadius - .5,
-      c.y - bounds[0].north - pointHighlightRadius - .75
-    );
+    // Creates a square image, with size given by the plot dimension
+    mandelbrotImg = sketch.createImage(plotSize, plotSize);
+    mandelbrotImg.loadPixels();
+
+    // Cycles through the pixels of the image
+    for (let x = 0; x < plotSize; x++) {
+      for (let y = 0; y < plotSize; y++) {
+
+        // f(z) = z^2 + c with z=0 and c given by the current pixel position
+        const [m, isMandelbrot] = mathUtils.fc(
+          { x: 0, y: 0 },
+          toCartesian({ x: x, y: y }, { x: plotSize / 2, y: plotSize / 2 })
+        );
+
+        // The color of the pixel is given by the number of iteration
+        // If the point "is Mandelbrot", the color is set to black
+        mandelbrotImg.set(x, y, sketch.color(
+          0, // Hue
+          0, // Saturation
+          isMandelbrot ? 0 : m / mathUtils.getMaxIteration() * 100) // Brightness
+        );
+      }
+    }
+
+    // The image is displayed in the correct position
+    mandelbrotImg.updatePixels();
+    sketch.image(mandelbrotImg, bounds[0].west, bounds[0].north);
+  }
+
+  /**
+   * Draws the Julia set plot.
+   * @param {{x: number, y: number}} c            Point c in f(z) = z^2 + c.
+   * @param {number}                 plotIndex    Index of the plot container.
+   * @param {number}                 imgIndex     Index of the Julia images array.
+   * @param {{x: number, y: number}} screenOrigin Origin in screen coordinates
+   * @param {number}                 scaleFactor  Units per pixel (global UPP by default).
+   */
+  function drawJuliaSet(c, plotIndex, imgIndex, screenOrigin, scaleFactor = unitsPerPixel) {
+
+    // Creates a square image, with size given by the plot dimension
+    juliaImgs[imgIndex] = sketch.createImage(plotSize, plotSize);
+    juliaImgs[imgIndex].loadPixels();
+
+    // Cycles through the pixels of the image
+    for (let x = 0; x < plotSize; x++) {
+      for (let y = 0; y < plotSize; y++) {
+
+        // f(z) = z^2 + c with z given given by the current pixel position
+        // c is corresponds to the selected point
+        const [m, isJulia] = mathUtils.fc(
+          toCartesian({ x: x, y: y }, screenOrigin, scaleFactor),
+          c
+        );
+
+        // The color of the pixel is given by the number of iterations
+        // If the point is "is Julia", the color is set to black
+        juliaImgs[imgIndex].set(x, y, sketch.color(
+          0, // Hue
+          0, // Saturation
+          isJulia ? 0 : m / mathUtils.getMaxIteration() * 100) //Value
+        );
+
+        /**
+         * NOTE:
+         * The Julia set is actually the border
+         * between the "is Julia" and the rest.
+         */
+      }
+    }
+
+    // The image is displayed in the correct position
+    juliaImgs[imgIndex].updatePixels();
+    sketch.image(juliaImgs[imgIndex], bounds[plotIndex].west, bounds[plotIndex].north);
   }
 
 }, "canvas");
