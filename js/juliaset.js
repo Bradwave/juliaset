@@ -744,7 +744,7 @@ let mainSketch = new p5((sketch) => {
 
         // f(z) = z^2 + c with z given given by the current pixel position
         // c is corresponds to the selected point
-        const [m, isJulia] = mathUtils.fc(
+        const [i, isJulia] = mathUtils.fc(
           toCartesian({ x: x, y: y }, screenOrigin, scaleFactor),
           c
         );
@@ -754,7 +754,7 @@ let mainSketch = new p5((sketch) => {
         juliaImgs[imgIndex].set(x, y, sketch.color(
           0, // Hue
           0, // Saturation
-          isJulia ? 0 : m / mathUtils.getMaxIteration() * 100) //Value
+          isJulia ? 0 : i / mathUtils.getMaxIteration() * 100) // Brightness
         );
 
         /**
