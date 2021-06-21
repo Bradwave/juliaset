@@ -367,10 +367,6 @@ let mainSketch = new p5((sketch) => {
         // Resets the Mandelbrot plot
         resetMandelbrotPlot();
 
-        // Resets the style of the Mandelbrot container
-        plotContainers[0].style('border-color', '#b4b4b4');
-        plotContainers[0].style('border-width', '#1px');
-
         // Hides the selection square
         selectionRectangle.style('visibility', 'hidden');
       }
@@ -389,12 +385,6 @@ let mainSketch = new p5((sketch) => {
       // Sets selecting to false, selected to true
       selectingArea = false;
       areaSelected = true;
-
-      // Sets the selec
-
-      // Makes the Mandelbrot container border red
-      plotContainers[0].style('border-color', '#B01A00');
-      plotContainers[0].style('border-width', '2px');
 
       // Draws the zoomed Julia plot
       drawZoomedPlot();
@@ -609,9 +599,13 @@ let mainSketch = new p5((sketch) => {
     pointHighlight.style('visibility', 'hidden');
     mandelbrotInfo.style.visibility = "hidden";
 
+    // Makes the Mandelbrot container border red
+    plotContainers[0].style('border-color', '#B01A00');
+    plotContainers[0].style('border-width', '2px');
+    plotContainers[0].style('transform: translate(-1px,-1px)');
+
     // Makes the selected coordinates visible
     selectedCoordinates[0].style.visibility = "visible";
-
 
     // Shows the x axis and arrow if they are in the container
     if (originProportions.y > 0 && originProportions.y < 1) {
@@ -648,6 +642,11 @@ let mainSketch = new p5((sketch) => {
     // Moves the Mandelbrot plot on top of the zoomed plot Julia plot
     sketch.image(mandelbrotImg, bounds[0].west, bounds[0].north);
 
+    // Resets the style of the Mandelbrot container
+    plotContainers[0].style('border-color', '#b4b4b4');
+    plotContainers[0].style('border-width', '1px');
+    plotContainers[0].style('transform: translate(0px,0px)')
+
     // Draws the last selected point
     drawLastPoint();
 
@@ -656,14 +655,14 @@ let mainSketch = new p5((sketch) => {
 
     if (guiHandler.getShowAxes()) {
       // Resets the x and y axis and arrowss
-      mXAxis.style.visibility = "visible";
       mXAxis.style.top = "50%";
-      mXArrow.style.visibility = "visible";
+      mXAxis.style.opacity = 1;
       mXArrow.style.top = "48.5%";
-      mYAxis.style.visibility = "visible";
+      mXArrow.style.opacity = 1;
       mYAxis.style.left = "50%";
-      mYArrow.style.visibility = "visible";
+      mYAxis.style.opacity = 1;
       mYArrow.style.left = "48.5%";
+      mYArrow.style.opacity = 1;
     }
   }
 
