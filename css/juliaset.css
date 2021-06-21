@@ -1,0 +1,311 @@
+/* Styling for the Julia Set Visualizer application */
+
+/* ==================================
+    Table of content
+    ----------------
+    1. Global
+        - Variables
+        - Fonts
+        - Selection
+    2. Components
+        2.1 Body
+        2.2 General containers
+            - General container
+            - Loading container
+        2.3 Plot containers
+            2.3.1 Cartesian plane
+                - Axes
+                - Arrows
+            2.3.2 Point highlight
+            2.3.3 Selection
+        2.4 Loaders
+            - Plot loader
+            - General loader
+        2.4 Options
+            - Toggle button
+        
+===================================== */
+
+/* ============================
+    1. Global
+=============================== */
+
+/* -- Variables -- */
+
+/* -- Fonts -- */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap');
+/* Robot Mono from Google Font */
+
+/* -- Selection -- */
+
+/* Disable highlight rectangle on mobile */
+
+* {
+    font-family: 'Roboto Mono', monospace;
+    -webkit-tap-highlight-color: #ffffff00;
+    user-select: none;
+}
+
+/* Selection */
+
+::-moz-selection {
+    color: #aaaaaa;
+    background: #B01A00;
+}
+
+::selection {
+    color: #aaaaaa;
+    background: #B01A00;
+}
+
+/* ============================
+    2. Components
+=============================== */
+
+/* -- 2.1 Body -- */
+
+body {
+    width: 100%;
+    height: 100%;
+    display: block;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    background-color: #000000;
+}
+
+/* -- 2.2 General containers -- */
+
+/* General container */
+
+div.general-container {
+    width: 100%;
+    height: 100%;
+    display: block;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    visibility: hidden;
+}
+
+/* Loading container */
+
+div.loading-container {
+    position: absolute;
+    width: 100%;
+    top: 42%;
+    display: grid;
+    place-items: center;
+}
+
+/* -- 2.3 Plot containers -- */
+
+.plot-container {
+    padding: 0;
+    margin: 0;
+    border: 1px solid #b4b4b4;
+    cursor: crosshair;
+}
+
+/* -- 2.3.1 Cartesian plane -- */
+
+.cartesian-plane {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* Coordinates */
+
+.coordinates {
+    position: absolute;
+    z-index: 99999;
+    left: 5pt;
+    bottom: 2pt;
+    margin: 0;
+    padding: 0;
+    color: #b4b4b4;
+    background-color: #000000a8;
+    font-size: 14px;
+}
+
+.coordinates.selected {
+    position: relative;
+    top: 2pt;
+    color: #B01A00;
+    font-weight: bold;
+}
+
+/* Axes */
+
+.axis {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+}
+
+.axis.x {
+    left: 0%;
+    top: 50%;
+    width: 100%;
+    height: 0px;
+    border-top: 1px #b4b4b4 solid;
+}
+
+.axis.y {
+    left: 50%;
+    top: 0%;
+    width: 0px;
+    height: 100%;
+    border-left: 1px #b4b4b4 solid;
+}
+
+/* Arrows */
+
+.arrow {
+    position: absolute;
+    display: inline-block;
+    border: solid #b4b4b4;
+    border-width: 0 1px 1px 0;
+    padding: 1.5%;
+}
+
+.arrow.right {
+    right: .5%;
+    top: 48.5%;
+    transform: rotate(-45deg);
+}
+
+.arrow.up {
+    left: 48.5%;
+    top: .5%;
+    transform: rotate(-135deg);
+}
+
+/* --  2.3.2 Point highlight -- */
+
+.point-highlight {
+    position: absolute;
+    top: -1000px;
+    left: -1000px;
+    border-radius: 50%;
+    background-color: #B01A00;
+    opacity: .2;
+    animation: highlight-point .3s ease-in-out;
+    animation-play-state: running;
+}
+
+@keyframes highlight-point {
+    0% {
+        transform: scale(1);
+        opacity: .2;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: .8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: .2;
+    }
+}
+
+/* --  2.3.3 Selection -- */
+
+.selection-rectangle {
+    position: absolute;
+    background-color: #b01a0014;
+    border: 2px solid #B01A00;
+    visibility: hidden;
+}
+
+.close-container {
+    position: absolute;
+    top: -2px;
+    right: -16px;
+}
+
+/* -- 2.4 Loaders -- */
+
+.loader, .loader:after {
+    border-radius: 50%;
+    width: 10em;
+    height: 10em;
+}
+
+.loader {
+    margin: 4px;
+    text-indent: -9999em;
+    border-top: 1.75em solid #ffffff2f;
+    border-right: 1.75em solid #ffffff2f;
+    border-bottom: 1.75em solid #ffffff2f;
+    transform: translateZ(0);
+    animation: load 1.1s infinite linear;
+    animation-play-state: paused;
+    visibility: hidden;
+}
+
+@keyframes load {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Plot loader */
+
+.loader.plot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 2px;
+    border-left: 1.75em solid #ffffff;
+}
+
+/* General loader */
+
+.loader.general {
+    top: 6pt;
+    left: 2pt;
+    font-size: 3px;
+    border-left: 1.75em solid #B01A00;
+    visibility: visible;
+    animation-play-state: running;
+}
+
+/* -- 2.5 Options -- */
+
+.options-panel {
+    margin: 0;
+    padding: 0;
+    color: #aaaaaa;
+    font-size: 14px;
+    overflow-x: hidden;
+    display: inline-block;
+    user-select: none;
+}
+
+.options-text {
+    vertical-align: middle;
+}
+
+/* Toggle button */
+
+.toggle-dot {
+    position: relative;
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #B01A00;
+    display: inline-block;
+    transition: all .1s ease-in-out;
+    cursor: pointer;
+}
