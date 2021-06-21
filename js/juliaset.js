@@ -1,97 +1,498 @@
-let mathUtils = new function () {
-  const MAX_ITERATION = 80;
-
-  this.getMaxIteration = () => {
-    return MAX_ITERATION;
-  }
-
-  this.fc = (z, c) => {
-    let n = 0, d;
-    do {
-      z = {
-        x: z.x * z.x - z.y * z.y + c.x,
-        y: 2 * z.x * z.y + c.y
-      };
-      d = z.x * z.x + z.y * z.y;
-    } while (d <= 4 && ++n < MAX_ITERATION);
-    return [n, d <= 4];
-  }
-}
-
+/**
+ * 
+ */
 let mainSketch = new p5((sketch) => {
 
-  let origins = [], bounds = [], containerSize;
-  let pixelsPerUnit, unitPerPixel;
+  /*
+  | ---------------------------------
+  | General variables
+  | --------------------------------
+  */
+
+  /** Array of origins for the mandelbrot and julia sets plots.
+   * @type {Array<{x: number, y: number}>} */
+  let origins = [];
+
+  /** Array of bounds (north, east, south, west) for the plots.
+   * @type {Array<{north: number, east: number, south: number, west: number}>} */
+  let bounds = [];
+
+  /** Size of the sketches.
+   * @type {number} */
+  let plotSize;
+
+  /** Number of pixels per Cartesian unit.
+   * @type {number} */
+  let pixelsPerUnit;
+
+  /** Number of Cartesian units per pixel.
+   * @type {number} */
+  let unitsPerPixel;
+
+  // Rendering
+
+  /** Mandelbrot image. */
+  let mandelbrotImg;
+
+  /** Julia image. */
+  let juliaImgs = [];
+
+  /*
+  | ---------------------------------
+  | Resizing
+  | --------------------------------
+  */
 
   let resizeTimeout;
+
+  /** Number of milliseconds to wait after resizing.
+   * @type {number} */
   const waitTime = 100;
 
-  let lastPressed;
+  /*
+  | ---------------------------------
+  | HTML elements
+  | --------------------------------
+  */
 
+  /** Loaders. */
+  let plotLoaders;
+
+  /** Plot containers.
+   * @type {Array} */
+  let plotContainers;
+
+  /** Mandelbrot and Julia Cartesian coordinates.
+   * @type {Array} */
+  let coordinates;
+
+  /** Selected coordinates.
+   * @type {Array} */
+  let selectedCoordinates = [];
+
+  /** Point highlight. */
+  let pointHighlight;
+  const pointHighlightRadius = 10;
+
+  /** Selection rectangle. */
+  let selectionRectangle;
+
+  /** Mandelbrot info container */
+  let mandelbrotInfo;
+
+  // Mandelbrot Cartesian System
+  let mXAxis, mYAxis, mXArrow, mYArrow;
+
+  /** Options panel. */
+  let optionsPanel;
+
+  /*
+  | ---------------------------------
+  | Selections
+  | --------------------------------
+  */
+
+  /** Last selected point in Cartesian coordinates.
+    * @type {Array.<Number>} */
+  let selectedPoints = [];
+
+  /** Selection starting point. */
+  let startPoint;
+
+  /** North-West corner of selection. */
+  let selectionCartesianCorner;
+
+  /** Origin proportions of zoomed plot. */
+  let originProportions = [];
+
+  /** Size of selection square. */
+  let selectionCartesianSize;
+
+  /** True if user is selecting an area, false otherwise */
+  let selectingArea = false;
+
+  /** True if user has selected an area, false otherwise. */
+  let areaSelected = false;
+
+  /**
+   * Overwrites p5 function.
+   * Gets called on load.
+   */
   sketch.setup = function () {
+
+    // Creates canvas
     sketch.createCanvas(sketch.windowWidth, sketch.windowHeight);
 
+    // Disables the render loop.
     sketch.noLoop();
+
+    // Sets the color mode to HSB (Hue, Saturation, Brightness).
     sketch.colorMode(sketch.HSB, 100);
 
+    // Sets the plots positions.
     updateGeometry();
 
+    // Sets background to black, prepares to draw red points.
     sketch.background(0);
     setPointOptions();
+
+    // Draws the Mandelbrot set.
     drawMandelbrotSet();
 
-    updateContainers();
+    // Gets the HTML elements and updates them.
+    configHtmlElements();
+    updateHtmlElements();
   }
 
+  /**
+   * Overwrites p5 function.
+   * Gets called when the window is resized.
+   */
   sketch.windowResized = function () {
+
+    // Creates the canvas
     sketch.resizeCanvas(sketch.windowWidth, sketch.windowHeight);
 
+    // Updates the plots positions
     updateGeometry();
 
+    // Clears the canvas
     sketch.clear();
+
+    // Prepares teh options for drawing red points
     setPointOptions();
 
-    updateContainers();
+    // Updates the HTML elements (plot containers and options panel)
+    updateHtmlElements();
 
-    document.getElementsByClassName("loader").forEach(e => {
+    // Displays the loaders while waiting
+    plotLoaders.forEach(e => {
       e.style.visibility = "visible";
+      e.style.animationPlayState = "running";
     });
 
-    // Wait 100ms before drawing.
+    // Hides the point highlight
+    pointHighlight.style('visibility', 'hidden');
+
+    // Hides the selection area
+    selectionRectangle.style('visibility', 'hidden');
+
+    // Waits before drawing
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
-      document.getElementsByClassName("loader").forEach(e => {
+
+      // Hides loaders after waiting
+      plotLoaders.forEach(e => {
         e.style.visibility = "hidden";
+        e.style.animationPlayState = "paused";
       });
 
-      drawMandelbrotSet();
-      if (typeof lastPressed !== 'undefined') {
-        drawJuliaSet(lastPressed);
-        const c = toScreenCoordinates(lastPressed, origins[0]);
-        sketch.point(c.x, c.y);
+      // Executes if an area is selected
+      if (areaSelected) {
+
+        // Draws the zoomed Julia plot
+        drawZoomedPlot();
+
+        // Makes the selection area visible
+        selectionRectangle.style('visibility', 'visible');
+
+        // Sets the selection position and size
+        const selectionPosition = toScreenCoordinates(selectionCartesianCorner, origins[1])
+        selectionRectangle.position(
+          selectionPosition.x - bounds[1].west,
+          selectionPosition.y - bounds[1].north
+        );
+        selectionRectangle.size(
+          selectionCartesianSize * pixelsPerUnit,
+          selectionCartesianSize * pixelsPerUnit
+        );
+      } else {
+        drawMandelbrotSet();
+      }
+
+      // If a point was selected, draws the point and the Julia set
+      if (typeof selectedPoints[0] !== 'undefined') {
+        if (!areaSelected) { drawLastPoint(); }
+        drawJuliaSet(selectedPoints[0], 1, 0, { x: plotSize / 2, y: plotSize / 2 });
       }
     }, waitTime);
   }
 
+  /**
+   * Gets the necessary HTML elements and sets listeners.
+   * For internal use only.
+   */
+  function configHtmlElements() {
+
+    /*
+    | ---------------------------------
+    | HTML elements
+    | --------------------------------
+    */
+
+    // Loaders
+    plotLoaders = [
+      document.getElementById("mandelbrot-loader"),
+      document.getElementById("julia-loader")
+    ];
+
+    // Plot containers
+    plotContainers = [
+      sketch.select('#mandelbrot'),
+      sketch.select('#julia')
+    ];
+
+    // Mandelbrot and Julia Cartesian coordinates
+    coordinates = [
+      document.getElementById("mandelbrot-coordinates"),
+      document.getElementById("julia-coordinates")
+    ]
+
+    // Selected coordinates
+    selectedCoordinates = document.getElementsByClassName("selected coordinates");
+    selectedCoordinates.forEach((e, i) => {
+      e.style.opacity = 1 - i / selectedCoordinates.length;
+    });
+
+    // Point highlight
+    pointHighlight = sketch.select('#point-highlight');
+    pointHighlight.size(pointHighlightRadius * 2, pointHighlightRadius * 2);
+
+    // Selection rectangle
+    selectionRectangle = sketch.select("#selection");
+
+    // Mandelbrot info container
+    mandelbrotInfo = document.getElementById("mandelbrot-info");
+
+    // Mandelbrot Cartesian system
+    mXAxis = document.getElementById("x-axis");
+    mYAxis = document.getElementById("y-axis");
+    mXArrow = document.getElementById("x-arrow");
+    mYArrow = document.getElementById("y-arrow");
+
+    // Options panel
+    optionsPanel = sketch.select('#options');
+
+    /*
+    | ---------------------------------
+    | Listeners
+    | --------------------------------
+    */
+
+    // Plot containers shared listeners for coordinates
+    plotContainers.forEach((container, i) => {
+
+      // Displays the coordinates of the cursor when hovering over the corresponding plot container
+      container.mouseMoved(() => {
+
+        // Gets the mouse position and converts it to Cartesian coordinates
+        const c = { x: sketch.mouseX, y: sketch.mouseY };
+        const p = (i == 0 && areaSelected) ?
+          toCartesian(c, {
+            x: bounds[0].west + originProportions.x * plotSize,
+            y: bounds[0].north + originProportions.y * plotSize
+          }, selectionCartesianSize / plotSize) :
+          toCartesian(c, origins[i]);
+
+        // Edits the displayed coordinates of the cursor
+        coordinates[i].innerHTML = coordinatesToString(p, 2);
+      });
+
+      // Hides the coordinates of the cursor when the mouse pointer leaves the plot container
+      container.mouseOut(() => {
+        coordinates[i].innerHTML = "";
+      });
+    });
+
+    // Executes when the mouse is clicked in the Mandelbrot container
+    plotContainers[0].mouseClicked(() => {
+
+      // Executes only if an area is not selected
+      if (!areaSelected) {
+
+        // Gets the mouse position
+        const c = { x: sketch.mouseX, y: sketch.mouseY };
+
+        // Draws the corresponding point
+        sketch.point(c.x, c.y);
+
+        // Moves the point highlight to correct position
+        pointHighlight.position(
+          c.x - bounds[0].west - pointHighlightRadius - .5,
+          c.y - bounds[0].north - pointHighlightRadius - .75
+        );
+
+        // Plays the point highlight animation
+        pointHighlight.style('webkitAnimation', 'none');
+        setTimeout(function () {
+          pointHighlight.style('webkitAnimation', '');
+        }, 10);
+
+        // Adds the selected points at the beginning of the selected points array
+        selectedPoints.unshift(toCartesian(c, origins[0]));
+
+        // Keeps the selected points array the correct length
+        selectedPoints = selectedPoints.slice(0, selectedCoordinates.length);
+
+        // Updates the displayed coordinates of the selected points
+        selectedPoints.forEach((p, i) => {
+          selectedCoordinates[i].innerHTML = coordinatesToString(p, 2);
+        })
+
+        // Draws the Julia set
+        drawJuliaSet(selectedPoints[0], 1, 0, { x: plotSize / 2, y: plotSize / 2 });
+      }
+    });
+
+    // Executes when the mouse is pressed in the Julia container
+    plotContainers[1].mousePressed(() => {
+
+      // Sets selected to false, selecting to true
+      selectingArea = true;
+      areaSelected = false;
+
+      // Saves the starting point of the selection
+      startPoint = { x: sketch.mouseX, y: sketch.mouseY };
+    });
+
+    plotContainers[1].mouseReleased(() => {
+
+      // Executes only if the mouse is moved by 1 pixel approximately
+      if (Math.abs((startPoint.x - sketch.mouseX) * (startPoint.y - sketch.mouseY)) < 1) {
+
+        // Sets both selecting and selected to false
+        selectingArea = false;
+        areaSelected = false;
+
+        // Resets the Mandelbrot plot
+        resetMandelbrotPlot();
+
+        // Resets the style of the Mandelbrot container
+        plotContainers[0].style('border-color', '#b4b4b4');
+        plotContainers[0].style('border-width', '#1px');
+
+        // Hides the selection square
+        selectionRectangle.style('visibility', 'hidden');
+      }
+    });
+  }
+
+  /**
+   * Overwrites p5 function.
+   * Gets called when a mouse button is released.
+   */
+  sketch.mouseReleased = function () {
+
+    // Executes only if the selection is ongoing and a point was selected
+    if (selectingArea && typeof selectedPoints[0] !== 'undefined') {
+
+      // Sets selecting to false, selected to true
+      selectingArea = false;
+      areaSelected = true;
+
+      // Sets the selec
+
+      // Makes the Mandelbrot container border red
+      plotContainers[0].style('border-color', '#B01A00');
+      plotContainers[0].style('border-width', '2px');
+
+      // Draws the zoomed Julia plot
+      drawZoomedPlot();
+    }
+  }
+
+  /**
+   * Overwrites p5 function.
+   * Gets called when a mouse button is released.
+   */
+  sketch.mouseDragged = function () {
+    if (selectingArea && typeof selectedPoints[0] !== 'undefined') {
+
+      // Shows the selection rectangle
+      if (selectionRectangle.style('visibility') === 'hidden') {
+
+        // Shows the selection rectangle
+        selectionRectangle.style('visibility', 'visible');
+      }
+
+      // Gets the mouse position
+      const c = { x: sketch.mouseX, y: sketch.mouseY };
+
+      // Calculates the size of the selection
+      const selectionSize = Math.round(Math.max(
+        Math.abs(c.x - startPoint.x),
+        Math.abs(c.y - startPoint.y)
+      ));
+
+      // Calculates the NW corner of the selection
+      const anchorPoint = {
+        x: (c.x > startPoint.x ? startPoint.x : startPoint.x - selectionSize),
+        y: (c.y > startPoint.y ? startPoint.y : startPoint.y - selectionSize)
+      };
+
+      // Converts the anchor points and the selection size to Cartesian
+      selectionCartesianCorner = toCartesian(anchorPoint, origins[1]);
+      selectionCartesianSize = selectionSize * unitsPerPixel;
+
+      // Executes only if the selection square is inside the Julia container
+      if (
+        isInside(1, anchorPoint) &&
+        isInside(1, { x: anchorPoint.x + selectionSize, y: anchorPoint.y + selectionSize })
+      ) {
+        // Sets the selection rectangle position and size
+        selectionRectangle.position(
+          anchorPoint.x - bounds[1].west,
+          anchorPoint.y - bounds[1].north
+        );
+        selectionRectangle.size(selectionSize, selectionSize);
+      }
+    }
+  }
+
+  function isInside(i, c) {
+    return ((c.x - bounds[i].east) * (c.x - bounds[i].west) < 0
+      && (c.y - bounds[i].north) * (c.y - bounds[i].south) < 0);
+  }
+
+  function coordinatesToString(p, d) {
+    return (p.x >= 0 ? "+" : "") + p.x.toFixed(d) + (p.y >= 0 ? "+" : "") + p.y.toFixed(d) + "i";
+  }
+
+  /**
+   * Sets p5 options for drawing red points.
+   */
   function setPointOptions() {
     sketch.stroke("#B01A00");
     sketch.strokeWeight(5);
   }
 
+  /**
+   * Updates the position and size of plots.
+   */
   function updateGeometry() {
-    const width = sketch.width;
-    const height = 0.9 * sketch.height;
+
+    const width = sketch.width; // Use windowWidth instead? Needs to be checked
+    const height = 0.9 * sketch.height; // Use windowHeight instead? Needs to be checked
+
+    /** True if the canvas is horizontal, false otherwise. */
+    const horizontalMode = height < width;
+
+    /**
+     * If the canvas is horizontal, the plots will be displayed side by side,
+     * if not, the plots will be displayed one above the other.
+     * A margin is established and then plots are centered accordingly.
+     * A space is left below the plots for the options panel.
+     */
 
     const marginFactor = 0.05;
-    const horizontalMode = height < width;
     const offsetFactor = 0.25 * (1 + marginFactor);
 
     origins = horizontalMode ? [
-      { x: width * offsetFactor, y: height * 0.5 },
-      { x: width * (1 - offsetFactor), y: height * 0.5 }
+      { x: Math.round(width * offsetFactor), y: Math.round(height * 0.5) },
+      { x: Math.round(width * (1 - offsetFactor)), y: Math.round(height * 0.5) }
     ] : [
-      { x: width * 0.5, y: height * (1 - offsetFactor) },
-      { x: width * 0.5, y: height * offsetFactor }
+      { x: Math.round(width * 0.5), y: Math.round(height * (1 - offsetFactor)) },
+      { x: Math.round(width * 0.5), y: Math.round(height * offsetFactor) }
     ];
 
     pixelsPerUnit = Math.round(0.5 * (0.5 - marginFactor) * Math.min(
@@ -99,7 +500,7 @@ let mainSketch = new p5((sketch) => {
       horizontalMode ? origins[1].x - origins[0].x : origins[0].y - origins[1].y,
     ));
 
-    unitPerPixel = 1 / pixelsPerUnit;
+    unitsPerPixel = 1 / pixelsPerUnit;
 
     origins.forEach((currentOrigin, currentIndex) => {
       bounds[currentIndex] = {
@@ -110,26 +511,35 @@ let mainSketch = new p5((sketch) => {
       };
     });
 
-    containerSize = pixelsPerUnit * 4;
+    /** Plot size, equals to 4 Cartesian unit. */
+    plotSize = pixelsPerUnit * 4;
+
   }
 
-  function updateContainers() {
-    let containers = [sketch.select('#mandelbrot'), sketch.select('#julia')];
+  function updateHtmlElements() {
 
-    containers.forEach((c, i) => {
-      c.position(bounds[i].west, bounds[i].north);
-      c.size(containerSize, containerSize);
+    // Plot containers
+    plotContainers.forEach((c, i) => {
+      c.position(bounds[i].west - 1, bounds[i].north - 1);
+      c.size(plotSize - 1, plotSize - 1);
     });
 
-    let optionsPanel = sketch.select('#options');
-    optionsPanel.position(1 + bounds[0].west, bounds[0].south + 0.12 * (sketch.height - bounds[0].south));
-    optionsPanel.size(bounds[1].east - bounds[0].west, 0.8 * (sketch.height - bounds[0].south));
+    // Options panel
+    optionsPanel.position(
+      1 + bounds[0].west,
+      bounds[0].south + 0.12 * (sketch.height - bounds[0].south)
+    );
+    optionsPanel.size(
+      bounds[1].east - bounds[0].west,
+      0.8 * (sketch.height - bounds[0].south)
+    );
+
   }
 
-  const toCartesian = function (p, screenOrigin) {
+  const toCartesian = function (p, screenOrigin, scaleFactor = unitsPerPixel) {
     return {
-      x: (p.x - screenOrigin.x) * unitPerPixel,
-      y: (screenOrigin.y - p.y) * unitPerPixel
+      x: (p.x - screenOrigin.x) * scaleFactor,
+      y: (screenOrigin.y - p.y) * scaleFactor
     };
   }
 
@@ -140,70 +550,135 @@ let mainSketch = new p5((sketch) => {
     };
   }
 
-  function isInside(i, c) {
-    return ((c.x - bounds[i].east) * (c.x - bounds[i].west) < 0
-      && (c.y - bounds[i].north) * (c.y - bounds[i].south) < 0);
-  }
-
-  sketch.mousePressed = function () {
-    const c = { x: sketch.mouseX, y: sketch.mouseY };
-    if (isInside(0, c)) {
-      sketch.point(c.x, c.y);
-      lastPressed = toCartesian(c, origins[0]);
-      drawJuliaSet(lastPressed);
-    }
-  }
-
-  sketch.mouseMoved = function () {
-    try {
-      let c = { x: sketch.mouseX, y: sketch.mouseY };
-      if (isInside(0, c)) {
-        c = toCartesian(c, origins[0]);
-        document.getElementById("mandelbrot-coordinates").innerHTML = "$" + c.x.toFixed(2) + "+" + c.y.toFixed(2) + "i $";
-        document.getElementById("julia-coordinates").innerHTML = "$\\,$";
-
-      } else if (isInside(1, c)) {
-        c = toCartesian(c, origins[1]);
-        document.getElementById("mandelbrot-coordinates").innerHTML = "$\\,$";
-        document.getElementById("julia-coordinates").innerHTML = "$" + c.x.toFixed(2) + "+" + c.y.toFixed(2) + "i $";
-      } else {
-        document.getElementById("mandelbrot-coordinates").innerHTML = "$\\,$";
-        document.getElementById("julia-coordinates").innerHTML = "$\\,$";
-      }
-      MathJax.typeset();
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
   function drawMandelbrotSet() {
-    sketch.loadPixels();
-    for (let x = bounds[0].west; x < bounds[0].east; x++) {
-      for (let y = bounds[0].north; y < bounds[0].south; y++) {
-        const [m, isMandelbrotSet] = mathUtils.fc({ x: 0, y: 0 }, toCartesian({ x: x, y: y }, origins[0]));
-        sketch.set(x, y, sketch.color(
+    mandelbrotImg = sketch.createImage(plotSize, plotSize);
+    mandelbrotImg.loadPixels();
+
+    for (let x = 0; x < plotSize; x++) {
+      for (let y = 0; y < plotSize; y++) {
+        const [m, isMandelbrotSet] = mathUtils.fc(
+          { x: 0, y: 0 },
+          toCartesian({ x: x, y: y }, { x: plotSize / 2, y: plotSize / 2 })
+        );
+        mandelbrotImg.set(x, y, sketch.color(
           0, // Hue
           0, // Saturation
           isMandelbrotSet ? 0 : m / mathUtils.getMaxIteration() * 100) //Value
         );
       }
     }
-    sketch.updatePixels();
+
+    mandelbrotImg.updatePixels();
+    sketch.image(mandelbrotImg, bounds[0].west, bounds[0].north);
   }
 
-  function drawJuliaSet(c) {
-    sketch.loadPixels();
-    for (let x = bounds[1].west; x < bounds[1].east; x++) {
-      for (let y = bounds[1].north; y < bounds[1].south; y++) {
-        const [m, isJulia] = mathUtils.fc(toCartesian({ x: x, y: y }, origins[1]), c);
-        sketch.set(x, y, sketch.color(
+  function drawJuliaSet(c, plotIndex, imgIndex, screenOrigin, scaleFactor = unitsPerPixel) {
+    juliaImgs[imgIndex] = sketch.createImage(plotSize, plotSize);
+    juliaImgs[imgIndex].loadPixels();
+
+    for (let x = 0; x < plotSize; x++) {
+      for (let y = 0; y < plotSize; y++) {
+        const [m, isJulia] = mathUtils.fc(
+          toCartesian({ x: x, y: y }, screenOrigin, scaleFactor),
+          c
+        );
+        juliaImgs[imgIndex].set(x, y, sketch.color(
           0, // Hue
           0, // Saturation
           isJulia ? 0 : m / mathUtils.getMaxIteration() * 100) //Value
         );
       }
     }
-    sketch.updatePixels();
+
+    juliaImgs[imgIndex].updatePixels();
+    sketch.image(juliaImgs[imgIndex], bounds[plotIndex].west, bounds[plotIndex].north);
   }
 
-});
+  function drawZoomedPlot() {
+
+    let anchorPoint = toScreenCoordinates(selectionCartesianCorner, origins[1]);
+    let selectionSize = selectionCartesianSize * pixelsPerUnit;
+
+    // Calculates origin proportions
+    originProportions = {
+      x: (origins[1].x - anchorPoint.x) / selectionSize,
+      y: (origins[1].y - anchorPoint.y) / selectionSize
+    }
+
+    // Hides the point highlight and the coordinates history
+    pointHighlight.style('visibility', 'hidden');
+    mandelbrotInfo.style.visibility = "hidden";
+
+    // Makes the selected coordinates visible
+    selectedCoordinates[0].style.visibility = "visible";
+
+
+    // Shows the x axis and arrow if they are in the container
+    if (originProportions.y > 0 && originProportions.y < 1) {
+      mXAxis.style.top = originProportions.y * 100 + "%";
+      mXAxis.style.opacity = 1;
+      mXArrow.style.top = originProportions.y * 100 - 1.5 + "%";
+      mXArrow.style.opacity = 1;
+    } else {
+      mXAxis.style.opacity = 0;
+      mXArrow.style.opacity = 0;
+    }
+
+    // Shows teh y axis and arrow if they are in the container
+    if (originProportions.x > 0 && originProportions.x < 1) {
+      mYAxis.style.left = originProportions.x * 100 + "%";
+      mYArrow.style.opacity = 1;
+      mYArrow.style.left = originProportions.x * 100 - 1.5 + "%";
+      mYAxis.style.opacity = 1;
+    } else {
+      mYAxis.style.opacity = 0;
+      mYArrow.style.opacity = 0;
+    }
+
+    // Draws the zoomed Julia plot on top of the Mandelbrot plot
+    drawJuliaSet(
+      selectedPoints[0], 0, 1,
+      { x: plotSize * originProportions.x, y: plotSize * originProportions.y },
+      selectionCartesianSize / plotSize
+    );
+  }
+
+  function resetMandelbrotPlot() {
+
+    // Moves the Mandelbrot plot on top of the zoomed plot Julia plot
+    sketch.image(mandelbrotImg, bounds[0].west, bounds[0].north);
+
+    // Draws the last selected point
+    drawLastPoint();
+
+    // Makes the Mandelbrot information visible
+    mandelbrotInfo.style.visibility = "visible";
+
+    if (guiHandler.getShowAxes()) {
+      // Resets the x and y axis and arrowss
+      mXAxis.style.visibility = "visible";
+      mXAxis.style.top = "50%";
+      mXArrow.style.visibility = "visible";
+      mXArrow.style.top = "48.5%";
+      mYAxis.style.visibility = "visible";
+      mYAxis.style.left = "50%";
+      mYArrow.style.visibility = "visible";
+      mYArrow.style.left = "48.5%";
+    }
+  }
+
+  function drawLastPoint() {
+
+    // Draws the last selected point
+    const c = toScreenCoordinates(selectedPoints[0], origins[0]);
+    sketch.point(c.x, c.y);
+
+    // Displays the point highlight
+    pointHighlight.style('visibility', 'visible');
+    pointHighlight.position(
+      c.x - bounds[0].west - pointHighlightRadius - .5,
+      c.y - bounds[0].north - pointHighlightRadius - .75
+    );
+  }
+
+}, "canvas");
