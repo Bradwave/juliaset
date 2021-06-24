@@ -30,9 +30,9 @@ let mathUtils = new function () {
     /**
      * Implementation of f(z) = z^2 + c, calculates the iterations needed to escape the radius 2.
      * Returns the number of iterations and if escaped or not.
-     * @param   {number}           z Value of z in f(z) = z^2 + c.
-     * @param   {number}           c Value of c in f(z) = z^2 + c.
-     * @returns {[number,boolean]}   Array with the number of iterations and if escaped.
+     * @param {number} z -  Value of z in f(z) = z^2 + c.
+     * @param {number} c - Value of c in f(z) = z^2 + c.
+     * @returns {[number,boolean]} Array with the number of iterations and if escaped.
      */
     this.fc = (z, c) => {
         // Sets iteration to 0
