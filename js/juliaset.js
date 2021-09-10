@@ -101,10 +101,10 @@ let mainSketch = new p5((sketch) => {
   let selectionCartesianSize;
 
   /** True if user is selecting an area, false otherwise */
-  let selectingArea = false;
+  let isSelectingArea = false;
 
   /** True if user has selected an area, false otherwise. */
-  let areaSelected = false;
+  let isAreaSelected = false;
 
   /*_______________________________________
   |   On open and resize
@@ -191,8 +191,11 @@ let mainSketch = new p5((sketch) => {
         e.style.animationPlayState = "paused";
       });
 
+      // Shows the point highlight
+      pointHighlight.style('visibility', 'visible');
+
       // Executes if an area is selected
-      if (areaSelected) {
+      if (isAreaSelected) {
 
         // Draws the Mandelbrot plot and zoomed Julia plot on top
         drawMandelbrotSet();
@@ -217,7 +220,7 @@ let mainSketch = new p5((sketch) => {
 
       // If a point was selected, draws the point and the Julia set
       if (typeof selectedPoints[0] !== 'undefined') {
-        if (!areaSelected) { drawLastPoint(); }
+        if (!isAreaSelected) { drawLastPoint(); }
         drawJuliaSet(selectedPoints[0], 1, 0, { x: plotSize / 2, y: plotSize / 2 });
       }
     }, waitTime);
@@ -233,7 +236,7 @@ let mainSketch = new p5((sketch) => {
     const height = 0.9 * sketch.height;
 
     /** True if the canvas is horizontal, false otherwise. */
-    const horizontalMode = height < width;
+    const isHorizontal = height < width;
 
     /**
      * If the canvas is horizontal, the plots will be displayed side by side,
@@ -245,7 +248,7 @@ let mainSketch = new p5((sketch) => {
     const marginFactor = 0.05;
     const offsetFactor = 0.25 * (1 + marginFactor);
 
-    origins = horizontalMode ? [
+    origins = isHorizontal ? [
       { x: Math.round(width * offsetFactor), y: Math.round(height * 0.5) },
       { x: Math.round(width * (1 - offsetFactor)), y: Math.round(height * 0.5) }
     ] : [
@@ -254,8 +257,8 @@ let mainSketch = new p5((sketch) => {
     ];
 
     pixelsPerUnit = Math.round(0.5 * (0.5 - marginFactor) * Math.min(
-      horizontalMode ? height : width,
-      horizontalMode ? origins[1].x - origins[0].x : origins[0].y - origins[1].y,
+      isHorizontal ? height : width,
+      isHorizontal ? origins[1].x - origins[0].x : origins[0].y - origins[1].y,
     ));
 
     unitsPerPixel = 1 / pixelsPerUnit;
@@ -272,6 +275,9 @@ let mainSketch = new p5((sketch) => {
     // Sets the plot size to 4 Cartesian unit.
     plotSize = pixelsPerUnit * 4;
 
+    mandelbrotImg = sketch.createImage(plotSize, plotSize);
+    juliaImgs[0] = sketch.createImage(plotSize, plotSize);
+    juliaImgs[1] = sketch.createImage(plotSize, plotSize);
   }
 
   /**
@@ -366,7 +372,7 @@ let mainSketch = new p5((sketch) => {
 
         // Gets the mouse position and converts it to Cartesian coordinates
         const c = { x: sketch.mouseX, y: sketch.mouseY };
-        const p = (i == 0 && areaSelected) ?
+        const p = (i == 0 && isAreaSelected) ?
           toCartesian(c, {
             x: bounds[0].west + originProportions.x * plotSize,
             y: bounds[0].north + originProportions.y * plotSize
@@ -387,7 +393,7 @@ let mainSketch = new p5((sketch) => {
     plotContainers[0].mouseClicked(() => {
 
       // Executes only if an area is not selected
-      if (!areaSelected) {
+      if (!isAreaSelected) {
 
         // Gets the mouse position
         const c = { x: sketch.mouseX, y: sketch.mouseY };
@@ -437,32 +443,35 @@ let mainSketch = new p5((sketch) => {
       // Saves the starting point of the selection
       startPoint = { x: sketch.mouseX, y: sketch.mouseY };
 
-      // If math mode is active, no selection is ongoing and a point is selected....
-      if (guiHandler.isPathModeActive() && !selectingArea && typeof selectedPoints[0] !== 'undefined') {
+      // Executes if math mode is active, no selection is ongoing and a point is selected
+      if (guiHandler.isPathModeActive() && !isSelectingArea && typeof selectedPoints[0] !== 'undefined') {
 
-        // ...draws the path of the point on the Julia set
+        // Draws the path of the point on the Julia set
         drawPath(toCartesian(startPoint, origins[1]), selectedPoints[0], 1);
+
+        // Draws the selected point
+        setPointOptions();
+        sketch.point(startPoint.x, startPoint.y);
       }
 
-      setPointOptions();
-      sketch.point(startPoint.x, startPoint.y);
-
-      // Sets selected to false, selecting to true
-      selectingArea = true;
-      areaSelected = false;
+      if (!guiHandler.isPathModeActive()) {
+        // Sets selected to false, selecting to true
+        isSelectingArea = true;
+        isAreaSelected = false;
+      }
     });
 
     // Executes only if a mouse button is released
     plotContainers[1].mouseReleased(() => {
 
-      if (selectingArea) {
+      if (isSelectingArea) {
 
         // Executes only if the mouse is moved by 1 pixel approximately
         if (Math.abs((startPoint.x - sketch.mouseX) * (startPoint.y - sketch.mouseY)) < 1) {
 
           // Sets both selecting and selected to false
-          selectingArea = false;
-          areaSelected = false;
+          isSelectingArea = false;
+          isAreaSelected = false;
 
           // Resets the Mandelbrot plot
           resetMandelbrotPlot();
@@ -481,11 +490,11 @@ let mainSketch = new p5((sketch) => {
   sketch.mouseReleased = function () {
 
     // Executes only if the selection is ongoing and a point was selected
-    if (selectingArea && typeof selectedPoints[0] !== 'undefined') {
+    if (isSelectingArea && typeof selectedPoints[0] !== 'undefined') {
 
       // Sets selecting to false, selected to true
-      selectingArea = false;
-      areaSelected = true;
+      isSelectingArea = false;
+      isAreaSelected = true;
 
       // Draws the zoomed Julia plot
       drawZoomedPlot();
@@ -499,7 +508,7 @@ let mainSketch = new p5((sketch) => {
   sketch.mouseDragged = function () {
 
     // Executes only if selection process is ongoing and a point was selected
-    if (selectingArea && typeof selectedPoints[0] !== 'undefined') {
+    if (isSelectingArea && typeof selectedPoints[0] !== 'undefined') {
 
       // Shows the selection rectangle
       if (selectionRectangle.style('visibility') === 'hidden') {
@@ -785,10 +794,6 @@ let mainSketch = new p5((sketch) => {
    */
   function drawMandelbrotSet() {
 
-    // Creates a square image, with size given by the plot dimension
-    mandelbrotImg = sketch.createImage(plotSize, plotSize);
-    mandelbrotImg.loadPixels();
-
     // Cycles through the pixels of the image
     for (let x = 0; x < plotSize; x++) {
       for (let y = 0; y < plotSize; y++) {
@@ -804,7 +809,7 @@ let mainSketch = new p5((sketch) => {
         mandelbrotImg.set(x, y, sketch.color(
           0, // Hue
           0, // Saturation
-          isMandelbrot ? 0 : m / mathUtils.getMaxIteration() * 100) // Brightness
+          isMandelbrot ? 0 : 2 + m / mathUtils.getMaxIteration() * 98) // Brightness
         );
       }
     }
@@ -824,10 +829,6 @@ let mainSketch = new p5((sketch) => {
    */
   function drawJuliaSet(c, plotIndex, imgIndex, screenOrigin, scaleFactor = unitsPerPixel) {
 
-    // Creates a square image, with size given by the plot dimension
-    juliaImgs[imgIndex] = sketch.createImage(plotSize, plotSize);
-    juliaImgs[imgIndex].loadPixels();
-
     // Cycles through the pixels of the image
     for (let x = 0; x < plotSize; x++) {
       for (let y = 0; y < plotSize; y++) {
@@ -844,7 +845,7 @@ let mainSketch = new p5((sketch) => {
         juliaImgs[imgIndex].set(x, y, sketch.color(
           0, // Hue
           0, // Saturation
-          isJulia ? 0 : i / mathUtils.getMaxIteration() * 100) // Brightness
+          isJulia ? 0 : 2 + i / mathUtils.getMaxIteration() * 98) // Brightness
         );
 
         /**
