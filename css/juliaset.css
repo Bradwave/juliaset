@@ -34,7 +34,7 @@
 
 /* -- Fonts -- */
 
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600&display=swap');
 /* Robot Mono from Google Font */
 
 /* -- Selection -- */
@@ -43,6 +43,7 @@
 
 * {
     font-family: 'Roboto Mono', monospace;
+    font-weight: 400;
     -webkit-tap-highlight-color: #ffffff00;
     user-select: none;
 }
@@ -138,7 +139,7 @@ div.loading-container {
     position: relative;
     top: 2pt;
     color: #B01A00;
-    font-weight: bold;
+    font-weight: 600;
 }
 
 /* Axes */
@@ -195,6 +196,7 @@ div.loading-container {
     left: -1000px;
     border-radius: 50%;
     background-color: #B01A00;
+    box-shadow: 0 0 10px #B01A00;
     opacity: .2;
     animation: highlight-point .3s ease-in-out;
     animation-play-state: running;

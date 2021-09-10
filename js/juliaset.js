@@ -66,7 +66,7 @@ let mainSketch = new p5((sketch) => {
 
   /** Point highlight. */
   let pointHighlight;
-  const pointHighlightRadius = 10;
+  const pointHighlightRadius = 7;
 
   /** Selection rectangle. */
   let selectionRectangle;
@@ -392,13 +392,21 @@ let mainSketch = new p5((sketch) => {
         // Gets the mouse position
         const c = { x: sketch.mouseX, y: sketch.mouseY };
 
+        // Executes if path mode is active
+        if (guiHandler.isPathModeActive()) {
+
+          // Draws the path on the Mandelbrot set
+          drawPath({ x: 0, y: 0 }, toCartesian(c, origins[0]), 0);
+        }
+
         // Draws the corresponding point
+        setPointOptions();
         sketch.point(c.x, c.y);
 
         // Moves the point highlight to correct position
         pointHighlight.position(
-          c.x - bounds[0].west - pointHighlightRadius - .5,
-          c.y - bounds[0].north - pointHighlightRadius - .75
+          c.x - bounds[0].west - pointHighlightRadius - 0.25,
+          c.y - bounds[0].north - pointHighlightRadius
         );
 
         // Plays the point highlight animation
@@ -426,29 +434,42 @@ let mainSketch = new p5((sketch) => {
     // Executes when the mouse is pressed in the Julia container
     plotContainers[1].mousePressed(() => {
 
+      // Saves the starting point of the selection
+      startPoint = { x: sketch.mouseX, y: sketch.mouseY };
+
+      // If math mode is active, no selection is ongoing and a point is selected....
+      if (guiHandler.isPathModeActive() && !selectingArea && typeof selectedPoints[0] !== 'undefined') {
+
+        // ...draws the path of the point on the Julia set
+        drawPath(toCartesian(startPoint, origins[1]), selectedPoints[0], 1);
+      }
+
+      setPointOptions();
+      sketch.point(startPoint.x, startPoint.y);
+
       // Sets selected to false, selecting to true
       selectingArea = true;
       areaSelected = false;
-
-      // Saves the starting point of the selection
-      startPoint = { x: sketch.mouseX, y: sketch.mouseY };
     });
 
     // Executes only if a mouse button is released
     plotContainers[1].mouseReleased(() => {
 
-      // Executes only if the mouse is moved by 1 pixel approximately
-      if (Math.abs((startPoint.x - sketch.mouseX) * (startPoint.y - sketch.mouseY)) < 1) {
+      if (selectingArea) {
 
-        // Sets both selecting and selected to false
-        selectingArea = false;
-        areaSelected = false;
+        // Executes only if the mouse is moved by 1 pixel approximately
+        if (Math.abs((startPoint.x - sketch.mouseX) * (startPoint.y - sketch.mouseY)) < 1) {
 
-        // Resets the Mandelbrot plot
-        resetMandelbrotPlot();
+          // Sets both selecting and selected to false
+          selectingArea = false;
+          areaSelected = false;
 
-        // Hides the selection square
-        selectionRectangle.style('visibility', 'hidden');
+          // Resets the Mandelbrot plot
+          resetMandelbrotPlot();
+
+          // Hides the selection square
+          selectionRectangle.style('visibility', 'hidden');
+        }
       }
     });
   }
@@ -689,6 +710,75 @@ let mainSketch = new p5((sketch) => {
   /*_______________________________________
   | Mandelbrot and Julia set plotter
   */
+
+  /**
+   * Plots the path of the point use to evaluate the Mandelbrot and Julia sets.
+   * @param {{x: Number, y: Number}} z         Point z in f(z) = z^2 + c.
+   * @param {{x: Number, y: Number}} c         Point c in f(z) = z^2 + c.
+   * @param {Number}                 plotIndex Index of the plot container.
+   */
+  function drawPath(z, c, plotIndex) {
+
+    // Redraws the corresponding image
+    sketch.image(
+      plotIndex == 0 ? mandelbrotImg : juliaImgs[0],
+      bounds[plotIndex].west, bounds[plotIndex].north
+    );
+
+    // Set drawing options
+    sketch.noFill();
+    sketch.strokeWeight(1);
+
+    sketch.beginShape();
+
+    // Sets iteration to 0
+    let i = 0, newZ, oldZ, d;
+    do {
+
+      // Draws the first point in case of Julia set
+      if (i == 0 && plotIndex == 1) {
+        newZ = toScreenCoordinates(z, origins[plotIndex]);
+        sketch.vertex(newZ.x, newZ.y);
+      }
+
+      // z^2 + 0
+      z = {
+        x: z.x * z.x - z.y * z.y + c.x,
+        y: 2 * z.x * z.y + c.y
+      };
+
+      oldZ = newZ;
+      newZ = toScreenCoordinates(z, origins[plotIndex]);
+      if (isInside(plotIndex, newZ)) {
+        sketch.vertex(newZ.x, newZ.y);
+      } else {
+        /**
+         * It was at this moment that he knew... he f*cked up!
+         * I should have used a completely different method
+         * to draw the whole thing, but hey.
+         * So... this search a point close the container border.
+         */
+        let j = 0, tempZ;
+        do {
+          tempZ = {
+            x: (oldZ.x + newZ.x) / 2,
+            y: (oldZ.y + newZ.y) / 2
+          }
+          if (isInside(plotIndex, tempZ)) {
+            oldZ = tempZ;
+          } else {
+            newZ = tempZ;
+          }
+        } while (++j < 10);
+        sketch.vertex(oldZ.x, oldZ.y);
+      }
+
+      // |z^2 + c|^2
+      d = z.x * z.x + z.y * z.y;
+    } while (d <= 4 && ++i < mathUtils.getMaxIteration());
+
+    sketch.endShape();
+  }
 
   /**
    * Draws the Mandelbrot set plot.
