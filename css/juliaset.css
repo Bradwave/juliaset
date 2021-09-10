@@ -77,6 +77,11 @@ body {
     background-color: #000000;
 }
 
+#canvas {
+    width: auto;
+    height: auto;
+}
+
 /* -- 2.2 General containers -- */
 
 /* General container */
@@ -222,7 +227,7 @@ div.loading-container {
 
 .selection-rectangle {
     position: absolute;
-    background-color: #b01a0014;
+    background-color: #b01a002c;
     border: 2px solid #B01A00;
     visibility: hidden;
 }
@@ -348,9 +353,25 @@ input[type=number] {
     -moz-appearance: textfield;
 }
 
+/* Warning signal */
+
 span.warning {
     font-size: 18px;
     font-weight: bold;
     color: #B01A00;
     content: "⚠";
+}
+
+/* Clear points button */
+
+span.clear-points {
+    font-size: 18px;
+    color: #b4b4b486;
+    content: "⦻";
+    transition: all .3 ease-in-out;
+}
+
+span.clear-points:hover {
+    cursor: pointer;
+    color: #b4b4b4;
 }

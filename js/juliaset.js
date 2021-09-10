@@ -416,7 +416,6 @@ let mainSketch = new p5((sketch) => {
       );
       maxIterationInputBox.value = newMaxIteration;
       mathUtils.setMaxIteration(newMaxIteration);
-      console.log(mathUtils.getMaxIteration());
 
       // Draws the Mandelbrot set with the updated max iteration value
       drawMandelbrotSet();
@@ -441,6 +440,15 @@ let mainSketch = new p5((sketch) => {
         iterationWarning.style('visibility', 'visible');
       } else {
         iterationWarning.style('visibility', 'hidden');
+      }
+    }
+
+    // Clears old points when the designated button is pressed
+    document.getElementById("clear-points").onclick = () => {
+      sketch.image(mandelbrotImg, bounds[0].west, bounds[0].north);
+
+      if (selectedPoints[0] !== 'undefined') {
+        drawLastPoint();
       }
     }
 
@@ -519,41 +527,27 @@ let mainSketch = new p5((sketch) => {
 
     // Executes when the mouse is pressed in the Julia container
     plotContainers[1].mousePressed(() => {
-
-      // Saves the starting point of the selection
-      startPoint = { x: sketch.mouseX, y: sketch.mouseY };
-
-      // Executes if math mode is active, no selection is ongoing and a point is selected
-      if (isPathModeActive && !isSelectingArea && typeof selectedPoints[0] !== 'undefined') {
-
-        // Draws the path of the point on the Julia set
-        drawPath(toCartesian(startPoint, origins[1]), selectedPoints[0], 1);
-
-        // Draws the selected point
-        setPointOptions();
-        sketch.point(startPoint.x, startPoint.y);
-      }
-
-      // Executes if path mode is not active
-      if (!isPathModeActive) {
-
-        // Sets selected to false, selecting to true
-        isSelectingArea = true;
-        isAreaSelected = false;
-      }
+      // Where the code was in the old version, which didn't support touch
     });
 
     // Executes only if a mouse button is released
     plotContainers[1].mouseReleased(() => {
-
-      if (isSelectingArea && typeof selectedPoints[0] !== 'undefined') {
-
-        // Executes only if the mouse is moved by 1 pixel approximately
-        if (Math.abs((startPoint.x - sketch.mouseX) * (startPoint.y - sketch.mouseY)) < 1) {
-          deselect();
-        }
-      }
+      // 
     });
+  }
+
+  /**
+   * Overwrites the p5 function.
+   * Gets called when the touch starts.
+   */
+  sketch.touchStarted = function () {
+    // Saves the starting point of the selection
+    startPoint = { x: sketch.mouseX, y: sketch.mouseY };
+
+    // Executes when the mouse is pressed in the Julia set container
+    if (isInside(1, startPoint)) {
+      startSelection();
+    }
   }
 
   /**
@@ -567,19 +561,30 @@ let mainSketch = new p5((sketch) => {
 
       // Sets selecting to false, selected to true
       isSelectingArea = false;
-      console.log(isSelectingArea);
       isAreaSelected = true;
 
       // Draws the zoomed Julia plot
       drawZoomedPlot();
     }
+
+    if (isInside(1, { x: sketch.mouseX, y: sketch.mouseY })) {
+      console.log("he")
+      if (isAreaSelected && typeof selectedPoints[0] !== 'undefined') {
+
+        // Executes only if the mouse is moved by 1 pixel approximately
+        if (Math.abs((startPoint.x - sketch.mouseX) * (startPoint.y - sketch.mouseY)) < 1) {
+          deselect();
+        }
+      }
+    }
   }
 
   /**
    * Overwrites p5 function.
-   * Gets called when a mouse button is released.
+   * Gets called when a touch point is moved.
+   * Acts like mouseDragged().
    */
-  sketch.mouseDragged = function () {
+  sketch.touchMoved = function () {
 
     // Executes only if selection process is ongoing and a point was selected
     if (isSelectingArea && typeof selectedPoints[0] !== 'undefined') {
@@ -620,6 +625,28 @@ let mainSketch = new p5((sketch) => {
         );
         selectionRectangle.size(selectionSize, selectionSize);
       }
+    }
+  }
+
+  function startSelection() {
+
+    // Executes if math mode is active, no selection is ongoing and a point is selected
+    if (isPathModeActive && !isSelectingArea && typeof selectedPoints[0] !== 'undefined') {
+
+      // Draws the path of the point on the Julia set
+      drawPath(toCartesian(startPoint, origins[1]), selectedPoints[0], 1);
+
+      // Draws the selected point
+      setPointOptions();
+      sketch.point(startPoint.x, startPoint.y);
+    }
+
+    // Executes if path mode is not active
+    if (!isPathModeActive) {
+
+      // Sets selected to false, selecting to true
+      isSelectingArea = true;
+      isAreaSelected = false;
     }
   }
 

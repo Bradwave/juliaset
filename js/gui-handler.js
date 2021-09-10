@@ -10,6 +10,9 @@ let guiHandler = new function () {
     /** True if the axes are visible, false otherwise */
     let showAxes = true;
 
+    /** True if the coordinates are visible, false otherwise */
+    let showCoordinates = true;
+
     /**
      * Returns the axes visibility flag.
      * @returns {boolean} True if the axes are visible, false otherwise
