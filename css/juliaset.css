@@ -23,6 +23,7 @@
             - General loader
         2.4 Options
             - Toggle button
+            - Input box
         
 ===================================== */
 
@@ -310,4 +311,46 @@ div.loading-container {
     display: inline-block;
     transition: all .1s ease-in-out;
     cursor: pointer;
+}
+
+/* Input box */
+
+input.input-box {
+    min-width: 10px;
+    width: 40px;
+    background-color: #00000000;
+    outline: none;
+    border-width: 0;
+    border-bottom: #aaaaaa solid 2px;
+    color: #6e6e6e;
+    text-align: center;
+    font: inherit;
+    caret-color: #aaaaaa;
+    transition: all .3 ease-in-out;
+}
+
+input.input-box:active {
+    border-color: #B01A00;
+}
+
+input.input-box:hover {
+    border-color: #d43417;
+}
+
+/* Hides arrows of input box */
+
+input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+span.warning {
+    font-size: 18px;
+    font-weight: bold;
+    color: #B01A00;
+    content: "⚠";
 }

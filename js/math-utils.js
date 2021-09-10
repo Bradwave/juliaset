@@ -23,8 +23,8 @@ let mathUtils = new function () {
      * Sets the maximum number of iterations.
      * @param {number} maxIteration Maximum number of iteration.
      */
-    this.setMaxIteration = (maxIteration) => {
-        this.maxIteration = maxIteration;
+    this.setMaxIteration = (newMaxIteration) => {
+        maxIteration = newMaxIteration;
     }
 
     /**

@@ -10,16 +10,6 @@ let guiHandler = new function () {
     /** True if the axes are visible, false otherwise */
     let showAxes = true;
 
-    /** True if the coordinates are visible, false otherwise */
-    let showCoordinates = true;
-
-    /** True if math mode is active, false otherwise */
-    let pathMode = false;
-
-    this.isPathModeActive = () => {
-        return pathMode;
-    }
-
     /**
      * Returns the axes visibility flag.
      * @returns {boolean} True if the axes are visible, false otherwise
@@ -53,11 +43,5 @@ let guiHandler = new function () {
         document.getElementsByClassName("coordinates").forEach(e => {
             e.style.visibility = showCoordinates ? "visible" : "hidden";
         })
-    }
-
-    // Toggle path mode
-    document.getElementById("toggle-path").onclick = () => {
-        pathMode = !pathMode;
-        document.getElementById("toggle-path").style.backgroundColor = pathMode ? "#B01A00" : "#ffffff2f";
     }
 }

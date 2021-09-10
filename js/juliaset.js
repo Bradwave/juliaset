@@ -107,6 +107,21 @@ let mainSketch = new p5((sketch) => {
   let isAreaSelected = false;
 
   /*_______________________________________
+    |   Path mode
+    */
+
+  /** True if math mode is active, false otherwise */
+  let isPathModeActive = false;
+
+  /*_______________________________________
+      |   Max iteration input
+      */
+
+  let maxIterationInputBox;
+
+  let iterationWarning;
+
+  /*_______________________________________
   |   On open and resize
   */
 
@@ -220,7 +235,9 @@ let mainSketch = new p5((sketch) => {
 
       // If a point was selected, draws the point and the Julia set
       if (typeof selectedPoints[0] !== 'undefined') {
-        if (!isAreaSelected) { drawLastPoint(); }
+        if (!isAreaSelected) {
+          drawLastPoint();
+        }
         drawJuliaSet(selectedPoints[0], 1, 0, { x: plotSize / 2, y: plotSize / 2 });
       }
     }, waitTime);
@@ -360,9 +377,72 @@ let mainSketch = new p5((sketch) => {
     // Options panel
     optionsPanel = sketch.select('#options');
 
+    // Max iteration input box
+    maxIterationInputBox = document.getElementById("max-iteration-box")
+
+    // Iteration warning
+    iterationWarning = sketch.select("#iteration-warning");
+    iterationWarning.style('visibility', 'hidden');
+
     /*_____________________________
     |   Listeners
     */
+
+    // Toggle path mode
+    document.getElementById("toggle-path").onclick = () => {
+      isPathModeActive = !isPathModeActive;
+      document.getElementById("toggle-path").style.backgroundColor = isPathModeActive ? "#B01A00" : "#ffffff2f";
+
+      // Deselect an eventually selected area
+      if (isAreaSelected) {
+        deselect();
+      }
+
+      // When path mode is deactivated, the Mandelbrot and Julia sets plots are reset
+      if (!isPathModeActive) {
+        sketch.image(mandelbrotImg, bounds[0].west, bounds[1].north);
+        sketch.image(juliaImgs[0], bounds[1].west, bounds[1].north);
+
+        drawLastPoint();
+      }
+    }
+
+    // Executes when the input box changes
+    maxIterationInputBox.onchange = () => {
+
+      // Sets the new max iteration value
+      let newMaxIteration = parseInt(
+        maxIterationInputBox.value > 0 ? maxIterationInputBox.value : 0
+      );
+      maxIterationInputBox.value = newMaxIteration;
+      mathUtils.setMaxIteration(newMaxIteration);
+      console.log(mathUtils.getMaxIteration());
+
+      // Draws the Mandelbrot set with the updated max iteration value
+      drawMandelbrotSet();
+
+      // If a point is selected, draws the Julia set
+      if (typeof selectedPoints[0] !== 'undefined') {
+        drawLastPoint();
+        drawJuliaSet(selectedPoints[0], 1, 0, { x: plotSize / 2, y: plotSize / 2 });
+
+        // If an area is selected, draws the zoomed Julia set
+        if (isAreaSelected) {
+          drawZoomedPlot();
+        }
+      }
+    }
+
+    // Executes when a key is released while in the input box
+    maxIterationInputBox.onkeyup = () => {
+
+      // If the max iteration value is too high, a warning is displayed
+      if (maxIterationInputBox.value > 150) {
+        iterationWarning.style('visibility', 'visible');
+      } else {
+        iterationWarning.style('visibility', 'hidden');
+      }
+    }
 
     // Plot containers shared listeners for coordinates
     plotContainers.forEach((container, i) => {
@@ -399,7 +479,7 @@ let mainSketch = new p5((sketch) => {
         const c = { x: sketch.mouseX, y: sketch.mouseY };
 
         // Executes if path mode is active
-        if (guiHandler.isPathModeActive()) {
+        if (isPathModeActive) {
 
           // Draws the path on the Mandelbrot set
           drawPath({ x: 0, y: 0 }, toCartesian(c, origins[0]), 0);
@@ -444,7 +524,7 @@ let mainSketch = new p5((sketch) => {
       startPoint = { x: sketch.mouseX, y: sketch.mouseY };
 
       // Executes if math mode is active, no selection is ongoing and a point is selected
-      if (guiHandler.isPathModeActive() && !isSelectingArea && typeof selectedPoints[0] !== 'undefined') {
+      if (isPathModeActive && !isSelectingArea && typeof selectedPoints[0] !== 'undefined') {
 
         // Draws the path of the point on the Julia set
         drawPath(toCartesian(startPoint, origins[1]), selectedPoints[0], 1);
@@ -454,7 +534,9 @@ let mainSketch = new p5((sketch) => {
         sketch.point(startPoint.x, startPoint.y);
       }
 
-      if (!guiHandler.isPathModeActive()) {
+      // Executes if path mode is not active
+      if (!isPathModeActive) {
+
         // Sets selected to false, selecting to true
         isSelectingArea = true;
         isAreaSelected = false;
@@ -464,20 +546,11 @@ let mainSketch = new p5((sketch) => {
     // Executes only if a mouse button is released
     plotContainers[1].mouseReleased(() => {
 
-      if (isSelectingArea) {
+      if (isSelectingArea && typeof selectedPoints[0] !== 'undefined') {
 
         // Executes only if the mouse is moved by 1 pixel approximately
         if (Math.abs((startPoint.x - sketch.mouseX) * (startPoint.y - sketch.mouseY)) < 1) {
-
-          // Sets both selecting and selected to false
-          isSelectingArea = false;
-          isAreaSelected = false;
-
-          // Resets the Mandelbrot plot
-          resetMandelbrotPlot();
-
-          // Hides the selection square
-          selectionRectangle.style('visibility', 'hidden');
+          deselect();
         }
       }
     });
@@ -494,6 +567,7 @@ let mainSketch = new p5((sketch) => {
 
       // Sets selecting to false, selected to true
       isSelectingArea = false;
+      console.log(isSelectingArea);
       isAreaSelected = true;
 
       // Draws the zoomed Julia plot
@@ -547,6 +621,22 @@ let mainSketch = new p5((sketch) => {
         selectionRectangle.size(selectionSize, selectionSize);
       }
     }
+  }
+
+  /**
+   * Deselect selected area
+   */
+  function deselect() {
+
+    // Sets both selecting and selected to false
+    isSelectingArea = false;
+    isAreaSelected = false;
+
+    // Resets the Mandelbrot plot
+    resetMandelbrotPlot();
+
+    // Hides the selection square
+    selectionRectangle.style('visibility', 'hidden');
   }
 
   /*_______________________________________
@@ -625,8 +715,8 @@ let mainSketch = new p5((sketch) => {
     // Displays the point highlight
     pointHighlight.style('visibility', 'visible');
     pointHighlight.position(
-      c.x - bounds[0].west - pointHighlightRadius - .5,
-      c.y - bounds[0].north - pointHighlightRadius - .75
+      c.x - bounds[0].west - pointHighlightRadius - .25,
+      c.y - bounds[0].north - pointHighlightRadius
     );
   }
 
