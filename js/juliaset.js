@@ -35,6 +35,9 @@ let mainSketch = new p5((sketch) => {
   /** Julia image. */
   let juliaImgs = [];
 
+  /** True if color mode is active, false otherwise */
+  let isColorModeActive = false;
+
   /*_______________________________________
   |   Resizing variables
   */
@@ -404,6 +407,26 @@ let mainSketch = new p5((sketch) => {
         sketch.image(juliaImgs[0], bounds[1].west, bounds[1].north);
 
         drawLastPoint();
+      }
+    }
+
+    // Toggle the color visibility
+    document.getElementById("toggle-color").onclick = () => {
+      isColorModeActive = !isColorModeActive;
+      document.getElementById("toggle-color").style.backgroundColor = isColorModeActive ? "#B01A00" : "#ffffff2f";
+
+      // Draws the Mandelbrot set with the updated colors
+      drawMandelbrotSet();
+
+      // If a point is selected, draws the Julia set
+      if (typeof selectedPoints[0] !== 'undefined') {
+        drawLastPoint();
+        drawJuliaSet(selectedPoints[0], 1, 0, { x: plotSize / 2, y: plotSize / 2 });
+
+        // If an area is selected, draws the zoomed Julia set
+        if (isAreaSelected) {
+          drawZoomedPlot();
+        }
       }
     }
 
@@ -921,12 +944,15 @@ let mainSketch = new p5((sketch) => {
           toCartesian({ x: x, y: y }, { x: plotSize / 2, y: plotSize / 2 })
         );
 
+        const minBrightness = isColorModeActive ? 25 : 2;
+        const maxBrightness = 100 - minBrightness;
+
         // The color of the pixel is given by the number of iteration
         // If the point "is Mandelbrot", the color is set to black
         mandelbrotImg.set(x, y, sketch.color(
-          0, // Hue
-          0, // Saturation
-          isMandelbrot ? 0 : 2 + m / mathUtils.getMaxIteration() * 98) // Brightness
+          isColorModeActive ? (m / mathUtils.getMaxIteration()) * 17 : 0, // Hue: red (0) to yellow (17)
+          isColorModeActive ? 100 : 0, // Saturation
+          isMandelbrot ? 0 : minBrightness + (m / mathUtils.getMaxIteration()) * maxBrightness) // Brightness
         );
       }
     }
@@ -957,12 +983,15 @@ let mainSketch = new p5((sketch) => {
           c
         );
 
+        const minBrightness = isColorModeActive ? 25 : 2;
+        const maxBrightness = 100 - minBrightness;
+
         // The color of the pixel is given by the number of iterations
         // If the point is "is Julia", the color is set to black
         juliaImgs[imgIndex].set(x, y, sketch.color(
-          0, // Hue
-          0, // Saturation
-          isJulia ? 0 : 2 + i / mathUtils.getMaxIteration() * 98) // Brightness
+          isColorModeActive ? (i / mathUtils.getMaxIteration()) * 17 : 0, // Hue: red (0) to yellow (17)
+          isColorModeActive ? 100 : 0, // Saturation
+          isJulia ? 0 : minBrightness + (i / mathUtils.getMaxIteration()) * maxBrightness) // Brightness
         );
 
         /**
