@@ -13,5 +13,3 @@ The number of max iterations can also be changed. If set too high, a warning sig
 ---
 
 Created by: *Camilla Cassanelli, Mattia Viscariello, Matteo Bramardi*.
-
-Available here: [bradwave.github.io/juliaset](https://bradwave.github.io/juliaset)
