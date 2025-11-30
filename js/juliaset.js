@@ -418,7 +418,7 @@ let mainSketch = new p5((sketch) => {
       // Draws the Mandelbrot set with the updated colors
       drawMandelbrotSet();
 
-      // If a point is selected, draws the Julia set
+      // If a point is selected, draws the Julia set with the updated colors
       if (typeof selectedPoints[0] !== 'undefined') {
         drawLastPoint();
         drawJuliaSet(selectedPoints[0], 1, 0, { x: plotSize / 2, y: plotSize / 2 });
@@ -591,7 +591,6 @@ let mainSketch = new p5((sketch) => {
     }
 
     if (isInside(1, { x: sketch.mouseX, y: sketch.mouseY })) {
-      console.log("he")
       if (isAreaSelected && typeof selectedPoints[0] !== 'undefined') {
 
         // Executes only if the mouse is moved by 1 pixel approximately
